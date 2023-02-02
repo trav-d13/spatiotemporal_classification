@@ -34,6 +34,16 @@ Still to be determined
 
 ## Methods
 Still to be completed
+1. ##### Decision Level Fusion of Two Stream
+Two streams of information characterize this methodology. The CNN will be utilized to classify the wildlife species, outputting a softmax layer containing each species probability within the image. 
+A separate Support Vector Machine (SVG) will be trained on spatio-temporal information in order to classify each specie, outputting a softmax output containing the same features as the CNN.
+The combination of these two decision level feature vectors will be conducted through statistical mean still to be decided.
+2. ##### Feature Concatenation
+3. ##### Layer Concatenation
+Utilizing existing CNN architectures, a concatenation layer will be placed before the softmax output layer. 
+This concatenation layer will serve to fuse higher levels of semantic information between what was detected within the image, 
+and the provided spatio-temporal information. Utilisation of pre-concatenation layers will be experimented upon.[1]
+4. ##### Model Fusion
 
 ## Results
 Still to be completed
@@ -43,3 +53,4 @@ Still to be completed
 - [iNaturalist](https://www.inaturalist.org/)
 
 ### Scientific Papers
+[1] K. Tang, M. Paluri, L. Fei-Fei, R. Fergus, and L. Bourdev, “Improving Image Classification with Location Context,” 2015 IEEE International Conference on Computer Vision (ICCV), Dec. 2015, doi: 10.1109/iccv.2015.121.‌
