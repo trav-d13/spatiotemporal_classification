@@ -13,6 +13,11 @@ def generate_dataframe(observation_file) -> pd.DataFrame:
     return df
 
 
+def sighting_duplication_removal(df) -> int:
+    return df.drop_duplicates(subset=['id'], keep='first')
+
+
 if __name__ == "__main__":
-    generate_dataframe(dataset)
+    sighting_df = generate_dataframe(dataset)
+    print(sighting_duplication_removal(sighting_df))
 
