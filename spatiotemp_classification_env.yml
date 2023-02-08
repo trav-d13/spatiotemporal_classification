@@ -267,4 +267,5 @@ dependencies:
   - conda-forge/linux-64::tensorflow-estimator==2.11.0=cuda112py310h37add04_0
   - conda-forge/linux-64::tensorflow==2.11.0=cuda112py310he87a039_0
   - git-lfs
+  - sphinx
 prefix: /home/travisdawson/anaconda3/envs/spatiotemp_classification
