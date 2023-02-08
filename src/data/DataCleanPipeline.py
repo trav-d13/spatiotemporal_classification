@@ -1,13 +1,18 @@
 import pandas as pd
-from Config import Definitions
+from Config import root_dir
 
 
 class Pipeline:
-    """:class: Pipeline to clean raw data into interim data source"""
+    """ Pipeline to clean raw data into interim data source.
+
+    Attributes:
+        dataset (str): file containing observation set
+        observation_path (str): The relative path (from project root) to the raw data observations
+    """
+    observation_path = "/data/raw/"
 
     def __init__(self, datasets):
         self.dataset = "observations_1.csv"
-        self.observation_path = "/data/raw/"
 
     def generate_dataframe(self, observation_file) -> pd.DataFrame:
         """Generate a dataframe from a parameterized observation csv file.
@@ -18,7 +23,7 @@ class Pipeline:
         Returns:
             DataFrame: A dataframe representation of the observations
         """
-        file_path = Definitions.root_dir() + \
+        file_path = root_dir() + \
                     self.observation_path + \
                     observation_file
         df = pd.read_csv(file_path, sep=",")
