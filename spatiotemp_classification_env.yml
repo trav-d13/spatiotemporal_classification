@@ -268,4 +268,6 @@ dependencies:
   - conda-forge/linux-64::tensorflow==2.11.0=cuda112py310he87a039_0
   - git-lfs
   - sphinx
+  - sphinx_rtd_theme
+  - sphinxcontrib-napoleon
 prefix: /home/travisdawson/anaconda3/envs/spatiotemp_classification

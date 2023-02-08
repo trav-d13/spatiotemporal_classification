@@ -10,9 +10,13 @@ class Pipeline:
         self.observation_path = "/data/raw/"
 
     def generate_dataframe(self, observation_file) -> pd.DataFrame:
-        """Generate a dataframe from a parameterized observation .csv file
-        :param observation_file: A .csv file containing the raw observations
-        :return: Pandas dataframe: A dataframe representation of the observations
+        """Generate a dataframe from a parameterized observation csv file.
+
+        Args:
+            observation_file (str): A csv file containing the raw observations
+
+        Returns:
+            DataFrame: A dataframe representation of the observations
         """
         file_path = Definitions.root_dir() + \
                     self.observation_path + \
@@ -21,8 +25,12 @@ class Pipeline:
         return df
 
     def sighting_duplication_removal(self, df) -> pd.DataFrame:
-        """Remove any possible sighting duplications from the dataframe
-        :param df: Pandas dataframe containing sightings
-        :return:  Pandas dataframe: Modified dataframe with duplications removed
+        """Remove any possible sighting duplications from the dataframe.
+
+        Args:
+            df (DataFrame): Dataframe format of observations
+
+        Returns:
+            DataFrame: Modified dataframe with duplications removed
         """
         return df.drop_duplicates(subset=['id'], keep='first')
