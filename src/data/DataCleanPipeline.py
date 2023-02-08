@@ -6,9 +6,12 @@ class Pipeline:
     """ Pipeline to clean raw data into interim data source.
 
     Attributes:
-        dataset (str): file containing observation set
         observation_path (str): The relative path (from project root) to the raw data observations
+
+    Args:
+        dataset (str): file containing observation set
     """
+
     observation_path = "/data/raw/"
 
     def __init__(self, datasets):
