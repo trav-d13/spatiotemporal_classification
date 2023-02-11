@@ -12,33 +12,19 @@ class Pipeline:
         dataset (str): file containing observation set
     """
 
-    observation_path = "/data/raw/"
+    def __init__(self, datasets=['observations_sample.csv'], test_df=None):
+        self.raw_df = pd.DataFrame()
+        self.datasets = datasets
+        self.resource_path = root_dir() + "/data/raw/"
 
-    def __init__(self, datasets):
-        self.dataset = "observations_1.csv"
+    def aggregate_observations(self):
+        for dataset in self.datasets:
+            df_temp = pd.read_csv(self.resource_path + dataset)
+            self.raw_df = pd.concat([self.raw_df, df_temp])
+        print(self.raw_df.head())
 
-    def generate_dataframe(self, observation_file) -> pd.DataFrame:
-        """Generate a dataframe from a parameterized observation csv file.
 
-        Args:
-            observation_file (str): A csv file containing the raw observations
+if __name__ == "__main__":
+    pipeline = Pipeline()
+    pipeline.aggregate_observations()
 
-        Returns:
-            DataFrame: A dataframe representation of the observations
-        """
-        file_path = root_dir() + \
-                    self.observation_path + \
-                    observation_file
-        df = pd.read_csv(file_path, sep=",")
-        return df
-
-    def sighting_duplication_removal(self, df) -> pd.DataFrame:
-        """Remove any possible sighting duplications from the dataframe.
-
-        Args:
-            df (DataFrame): Dataframe format of observations
-
-        Returns:
-            DataFrame: Modified dataframe with duplications removed
-        """
-        return df.drop_duplicates(subset=['id'], keep='first')
