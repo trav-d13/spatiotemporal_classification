@@ -41,8 +41,5 @@ class TestCleaningPipeline(unittest.TestCase):
         self.assertTrue(correct_df.equals(pipeline.df))
 
 
-
-
-
 if __name__ == '__main__':
     unittest.main()
