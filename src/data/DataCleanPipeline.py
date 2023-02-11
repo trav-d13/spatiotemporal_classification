@@ -2,8 +2,6 @@ import pandas as pd
 
 from Config import root_dir
 
-from datetime import datetime
-
 
 class Pipeline:
     """ Pipeline to clean raw data into interim data source.
@@ -20,6 +18,7 @@ class Pipeline:
             self.df = pd.DataFrame()
             self.datasets = datasets
             self.resource_path = root_dir() + "/data/raw/"
+            self.write_path = root_dir() + "/data/interim/"
         else:
             self.df = test_df.copy(deep=True)
 
@@ -37,6 +36,12 @@ class Pipeline:
         self.df.drop_duplicates(subset=['id'], keep='first', inplace=True)
 
     def format_observation_dates(self):
+        """ Method ensures that raw data dates follow format yyyy-mm-dd. If the dates deviate they are removed from the dataframe.
+
+        In place changes are effected within the classes dataframe df.
+        Any date errors produced by incorrect date formats are transformed into NaT values, and the row removed from df
+        Removal of the rows requires an index reset in order to facilitate testing operations on the cleaning pipeline.
+        """
         self.df['observed_on'] = pd.to_datetime(self.df['observed_on'],
                                                 format='%Y-%m-%d',
                                                 yearfirst=True,
@@ -45,8 +50,26 @@ class Pipeline:
         self.df.query('observed_on != "NaT"', inplace=True)
         self.df.reset_index(drop=True, inplace=True)
 
+    def write_interim_data(self):
+        """ Method writes current state of df into interim data folder in csv format"""
+        file_name = "interim_observations.csv"
+        self.df.to_csv(self.write_path + file_name, index=False)
+
 
 if __name__ == "__main__":
+    # Create Pipeline object
     pipeline = Pipeline()
+
+    # Aggregate all observation files
     pipeline.aggregate_observations()
+
+    # Ensure that no sighting duplicates are within the aggregate set
     pipeline.enforce_unique_ids()
+
+    # Ensure that sighting dates follow the same format.
+    pipeline.format_observation_dates()
+
+    pipeline.write_interim_data()
+
+    # Display df head
+    print(pipeline.df.head())
