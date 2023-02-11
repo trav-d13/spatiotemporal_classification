@@ -1,4 +1,4 @@
-python==3.10.9
+python==3.10
 numpy==1.23.5
 pandas==1.5.2
 Sphinx==6.1.3
