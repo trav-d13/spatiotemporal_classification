@@ -52,12 +52,14 @@ class Pipeline:
         self.df.query('observed_on != "NaT"', inplace=True)
         self.df.reset_index(drop=True, inplace=True)
 
+    #TODO List through locations and generate countries list
     def coordinate_to_country(self):
         geolocator = Nominatim(user_agent="geoapiExercises")
-        Latitude = "25.594095"
-        Longitude = "85.137566"
-        country = geolocator.reverse(Latitude + "," + Longitude)
-        print(country)
+        latitudes = self.df.latitude.astype(str)
+        longitudes = self.df.longitude.astype(str)
+        locations = latitudes + ", " + longitudes
+        # countries = geolocator.reverse(locations, exactly_one=False)
+        # print(countries)
 
 
     def write_interim_data(self):
