@@ -1,5 +1,7 @@
 import pandas as pd
 
+from geopy.geocoders import Nominatim
+
 from Config import root_dir
 
 
@@ -49,6 +51,13 @@ class Pipeline:
                                                 exact=True).astype(str)
         self.df.query('observed_on != "NaT"', inplace=True)
         self.df.reset_index(drop=True, inplace=True)
+
+    def coordinate_to_country(self):
+        geolocator = Nominatim(user_agent="geoapiExercises")
+        Latitude = "25.594095"
+        Longitude = "85.137566"
+        country = geolocator.reverse(Latitude + "," + Longitude)
+        print(country)
 
 
     def write_interim_data(self):
