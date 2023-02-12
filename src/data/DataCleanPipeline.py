@@ -50,6 +50,7 @@ class Pipeline:
         self.df.query('observed_on != "NaT"', inplace=True)
         self.df.reset_index(drop=True, inplace=True)
 
+
     def write_interim_data(self):
         """ Method writes current state of df into interim data folder in csv format"""
         file_name = "interim_observations.csv"
@@ -69,6 +70,7 @@ if __name__ == "__main__":
     # Ensure that sighting dates follow the same format.
     pipeline.format_observation_dates()
 
+    # Write to interim data
     pipeline.write_interim_data()
 
     # Display df head

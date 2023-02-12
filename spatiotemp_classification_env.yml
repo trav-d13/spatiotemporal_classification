@@ -9,4 +9,6 @@ dependencies:
   - sphinx-autodoc-typehints
   - sphinx_rtd_theme
   - python=3.10.9
+  - git-lfs
+  - geopy
 prefix: /home/travisdawson/anaconda3/envs/spatiotemp_class_env
