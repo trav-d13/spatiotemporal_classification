@@ -46,10 +46,15 @@ class TestCleaningPipeline(unittest.TestCase):
     def test_coordinate_to_country(self):
         pipeline = Pipeline(test_df=test_df)
         pipeline.coordinate_to_country()
+        countries = pipeline.df['country']
+        print(countries)
 
-        # Correct countries:
-        # Australia, India, South Africa, New Zealand, Argentina, Belgium
-
+        self.assertTrue(countries[0] == "Australia")
+        self.assertTrue(countries[1] == "India")
+        self.assertTrue(countries[2] == "South Africa")
+        self.assertTrue(countries[3] == "New Zealand")
+        self.assertTrue(countries[4] == "Argentina")
+        self.assertTrue(countries[5] == "Belgium")
 
 
 if __name__ == '__main__':

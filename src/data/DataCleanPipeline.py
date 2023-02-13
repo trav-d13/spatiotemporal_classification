@@ -1,6 +1,9 @@
 import pandas as pd
 
 from geopy.geocoders import Nominatim
+from geopy.extra.rate_limiter import RateLimiter
+
+from functools import partial
 
 from Config import root_dir
 
@@ -52,15 +55,20 @@ class Pipeline:
         self.df.query('observed_on != "NaT"', inplace=True)
         self.df.reset_index(drop=True, inplace=True)
 
-    #TODO List through locations and generate countries list
+    #TODO Document method
     def coordinate_to_country(self):
+        # Set up the geolocation library
         geolocator = Nominatim(user_agent="geoapiExercises")
+        geocode = RateLimiter(geolocator.reverse, min_delay_seconds=1)
+
+        # Combine lat and long into coordinates
         latitudes = self.df.latitude.astype(str)
         longitudes = self.df.longitude.astype(str)
-        locations = latitudes + ", " + longitudes
-        # countries = geolocator.reverse(locations, exactly_one=False)
-        # print(countries)
+        coordinates = latitudes + ", " + longitudes
 
+        # Retrieve countries from coordinates (rate limiting requests)
+        locations = coordinates.apply(partial(geocode, language='en', exactly_one=True))
+        self.df['country'] = locations.apply(lambda x: x.raw['address']['country'])
 
     def write_interim_data(self):
         """ Method writes current state of df into interim data folder in csv format"""
