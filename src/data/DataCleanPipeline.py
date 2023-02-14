@@ -55,8 +55,11 @@ class Pipeline:
         self.df.query('observed_on != "NaT"', inplace=True)
         self.df.reset_index(drop=True, inplace=True)
 
-    #TODO Document method
     def coordinate_to_country(self):
+        """ Method takes data coordinates, and identifies the country of origin, creating a Country column within Interim data
+
+        The Geopy library is utilized, with rate limiting (1 sec) in order to not tax the API.
+        """
         # Set up the geolocation library
         geolocator = Nominatim(user_agent="geoapiExercises")
         geocode = RateLimiter(geolocator.reverse, min_delay_seconds=1)
