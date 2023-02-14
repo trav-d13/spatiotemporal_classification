@@ -1,5 +1,10 @@
 import pandas as pd
 
+from geopy.geocoders import Nominatim
+from geopy.extra.rate_limiter import RateLimiter
+
+from functools import partial
+
 from Config import root_dir
 
 
@@ -50,6 +55,24 @@ class Pipeline:
         self.df.query('observed_on != "NaT"', inplace=True)
         self.df.reset_index(drop=True, inplace=True)
 
+    def coordinate_to_country(self):
+        """ Method takes data coordinates, and identifies the country of origin, creating a Country column within Interim data
+
+        The Geopy library is utilized, with rate limiting (1 sec) in order to not tax the API.
+        """
+        # Set up the geolocation library
+        geolocator = Nominatim(user_agent="geoapiExercises")
+        geocode = RateLimiter(geolocator.reverse, min_delay_seconds=1)
+
+        # Combine lat and long into coordinates
+        latitudes = self.df.latitude.astype(str)
+        longitudes = self.df.longitude.astype(str)
+        coordinates = latitudes + ", " + longitudes
+
+        # Retrieve countries from coordinates (rate limiting requests)
+        locations = coordinates.apply(partial(geocode, language='en', exactly_one=True))
+        self.df['country'] = locations.apply(lambda x: x.raw['address']['country'])
+
     def write_interim_data(self):
         """ Method writes current state of df into interim data folder in csv format"""
         file_name = "interim_observations.csv"
@@ -69,6 +92,7 @@ if __name__ == "__main__":
     # Ensure that sighting dates follow the same format.
     pipeline.format_observation_dates()
 
+    # Write to interim data
     pipeline.write_interim_data()
 
     # Display df head
