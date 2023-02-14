@@ -73,6 +73,12 @@ class Pipeline:
         locations = coordinates.apply(partial(geocode, language='en', exactly_one=True))
         self.df['country'] = locations.apply(lambda x: x.raw['address']['country'])
 
+    def generate_local_times(self):
+        # Remove any rows with empty values
+        self.df.dropna(subset=['time_observed_at', 'time_zone'], inplace=True)
+        self.df.reset_index(drop=True, inplace=True)
+
+
 
 
     def write_interim_data(self):
