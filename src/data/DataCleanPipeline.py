@@ -73,6 +73,8 @@ class Pipeline:
         locations = coordinates.apply(partial(geocode, language='en', exactly_one=True))
         self.df['country'] = locations.apply(lambda x: x.raw['address']['country'])
 
+
+
     def write_interim_data(self):
         """ Method writes current state of df into interim data folder in csv format"""
         file_name = "interim_observations.csv"
@@ -91,6 +93,9 @@ if __name__ == "__main__":
 
     # Ensure that sighting dates follow the same format.
     pipeline.format_observation_dates()
+
+    # Generate country column from sighting coordinates
+    pipeline.coordinate_to_country()
 
     # Write to interim data
     pipeline.write_interim_data()
