@@ -15,7 +15,7 @@ test_df = pd.DataFrame(test_data, columns=['id',
                                            'latitude',
                                            'longitude'])
 
-# TODO Refactor tests to only check modifed parameters not entire dataframe
+
 class TestCleaningPipeline(unittest.TestCase):
     # Test duplicate observation (unique id) removal
     def test_unique_id(self):
