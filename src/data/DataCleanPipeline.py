@@ -1,5 +1,11 @@
 import pandas as pd
 
+from datetime import datetime
+
+import pytz
+from dateutil.tz import tzutc
+from pytz import timezone
+
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 
@@ -73,13 +79,16 @@ class Pipeline:
         locations = coordinates.apply(partial(geocode, language='en', exactly_one=True))
         self.df['country'] = locations.apply(lambda x: x.raw['address']['country'])
 
+    # TODO Generate acceptable time-zones from geopy as get:
+    # pytz.exceptions.UnknownTimeZoneError: 'Sydney'
     def generate_local_times(self):
         # Remove any rows with empty values
         self.df.dropna(subset=['time_observed_at', 'time_zone'], inplace=True)
         self.df.reset_index(drop=True, inplace=True)
 
-
-
+        # Access time_observed at column (UTC format) and local time zones
+        self.df['local_time_observed_at'] = self.df.apply(
+            lambda x: pd.to_datetime(x['time_observed_at'], utc=True).astimezone(pytz.timezone(x['time_zone'])), axis=1)
 
     def write_interim_data(self):
         """ Method writes current state of df into interim data folder in csv format"""
