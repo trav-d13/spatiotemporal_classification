@@ -60,12 +60,6 @@ class TestCleaningPipeline(unittest.TestCase):
         pipeline = Pipeline(test_df=test_df)
         pipeline.generate_local_times()
 
-        # 2022/08/02 12:40 AM -> Sydney
-        # 2022-08-02 00:20:13 -> Madrid
-        # 2022-08-02 10:11:57+02:00 -> Africa/Windhoek
-        # 2022-08-02 07:37:59-04:00 -> Eastern Time (US & Canada)
-        # 2022-08-02 10:42:33 -> London
-
     def test_timezone_standardization(self):
         pipeline = Pipeline(test_df=test_df)
         pipeline.standardize_timezones()
