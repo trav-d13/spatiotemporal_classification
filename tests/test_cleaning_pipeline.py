@@ -68,6 +68,14 @@ class TestCleaningPipeline(unittest.TestCase):
         # 2022-08-02 07:37:59-04:00 -> Eastern Time (US & Canada)
         # 2022-08-02 10:42:33 -> London
 
+    def test_timezone_standardization(self):
+        pipeline = Pipeline(test_df=test_df)
+        pipeline.standardize_timezones()
+        timezones = pipeline.df['time_zone']
+        print(timezones)
+
+        self.assertTrue(timezones[0] == "Australia/Sydney")
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,6 +1,7 @@
 import pandas as pd
 
 from datetime import datetime
+from timezonefinder import TimezoneFinder
 
 import pytz
 from dateutil.tz import tzutc
@@ -86,9 +87,18 @@ class Pipeline:
         self.df.dropna(subset=['time_observed_at', 'time_zone'], inplace=True)
         self.df.reset_index(drop=True, inplace=True)
 
+        # Generate timezones such that they are acceptable to pytz
+
         # Access time_observed at column (UTC format) and local time zones
         self.df['local_time_observed_at'] = self.df.apply(
             lambda x: pd.to_datetime(x['time_observed_at'], utc=True).astimezone(pytz.timezone(x['time_zone'])), axis=1)
+        print(self.df)
+
+    def standardize_timezones(self):
+        finder = TimezoneFinder()
+
+        self.df['time_zone'] = self.df.apply(
+            lambda x: finder.timezone_at(lat=x['latitude'], lng=x['longitude']), axis=1)
 
     def write_interim_data(self):
         """ Method writes current state of df into interim data folder in csv format"""
