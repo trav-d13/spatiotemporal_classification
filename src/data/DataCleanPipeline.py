@@ -81,12 +81,13 @@ class Pipeline:
         self.df['country'] = locations.apply(lambda x: x.raw['address']['country'])
 
     def generate_local_times(self):
-        """
+        """ Method converts UTC time to correct local time utilizing the specified sighting timezone.
+
+        The new column generated is labelled "local_time_observed_at" and can be found in interim data folder.
 
         The date conversion utilizes both date and time in the UTC format.
         This means, any day change (midnight -> next day) are accounted for.
         The observed_on column is correct.
-        :return:
         """
         # Remove any rows with empty values
         self.df.dropna(subset=['time_observed_at', 'time_zone'], inplace=True)
@@ -100,6 +101,11 @@ class Pipeline:
             lambda x: pd.to_datetime(x['time_observed_at'], utc=True).astimezone(pytz.timezone(x['time_zone'])), axis=1).astype(str)
 
     def standardize_timezones(self):
+        """ Method generated timezones in a format accepted by the pytz library for use in the local time zone conversion
+
+        This method utilizes the observation coordinates to return the time zone of the sighting.
+        This timezone overwrites the "time_zone" column
+        """
         finder = TimezoneFinder()
 
         self.df['time_zone'] = self.df.apply(
