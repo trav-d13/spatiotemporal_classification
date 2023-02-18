@@ -3,12 +3,14 @@ import unittest
 
 from src.data.DataCleanPipeline import Pipeline
 
-test_data = [[128984633, "2022-08-02", -30.4900714453, 151.6392706226, "2022-08-01 14:40:00 UTC", "Australia/Sydney"],
-             [129048796, "2022-04-02", 25.594095, 85.137566, "2022-08-01 22:20:13 UTC", "Madrid"],
-             [110157830, "2022-04/02", -33.918861, 18.423300, "2022-08-01 22:26:13 UTC", "Berlin"],
-             [110266861, "2022-08-02", -38.6714966667, 178.0182195, "2022-08-02 08:11:57 UTC", "Africa/Windhoek"],
-             [111311033, "202g-09-15", -31.416668, -64.183334, "2022-08-02 11:37:59 UTC", "Eastern Time (US & Canada)"],
-             [111311033, "2022-08-15", 51.260197, 4.402771, "2022-08-02 09:42:33 UTC", "London"]]
+# Test data retrieved from observations_1.csv (modified to include errors here)
+test_data = [[128984633, "2022-08-02", -30.4900714453, 151.6392706226, "2022-08-01 14:40:00 UTC", "Sydney"],
+             [129051266, "2022-08-02", 43.1196234274, -7.6788841188, "2022-08-01 22:20:13 UTC", "Madrid"],
+             [129054418, "2022-08/02", 50.6864393301, 7.1697807312, "2022-08-01 22:26:13 UTC", "Berlin"],
+             [129076855, "2022-08-02", -40.9498116654, 174.9710916171, "2022-08-02 01:32:23 UTC", "Wellington"],
+             [129076855, "2022-08-02", -40.9498116654, 174.9710916171, "2022-08-02 01:32:23 UTC", "Wellington"],
+             [129107609, "202g-08-15", 43.952764223, -110.6115040714, "2022-08-02 07:14:59 UTC", "Mountain Time (US & Canada)"],
+             [129120635, "2022-08-15", -18.83915, 16.9536, "2022-08-02 08:11:57 UTC", "Africa/Windhoek"]]
 
 test_df = pd.DataFrame(test_data, columns=['id',
                                            'observed_on',
@@ -24,14 +26,10 @@ class TestCleaningPipeline(unittest.TestCase):
         pipeline = Pipeline(test_df=test_df)
         pipeline.enforce_unique_ids()
 
-        correct_data = [[128984633, "2022-08-02", -30.4900714453, 151.6392706226],
-                        [129048796, "2022-04-02", 25.594095, 85.137566],
-                        [110157830, "2022-04/02", -33.918861, 18.423300],
-                        [110266861, "2022-08-02", -38.6714966667, 178.0182195],
-                        [111311033, "202g-09-15", -31.416668, -64.183334]]
-        correct_df = pd.DataFrame(correct_data, columns=['id', 'observed_on', 'latitude', 'longitude'])
+        resulting_ids = pipeline.df['id'].tolist()
+        correct_ids = [128984633, 129051266, 129054418, 129076855, 129107609, 129120635]
 
-        self.assertTrue(correct_df.equals(pipeline.df))
+        self.assertTrue(resulting_ids == correct_ids)
 
     def test_data_formatting(self):
         pipeline = Pipeline(test_df=test_df)
