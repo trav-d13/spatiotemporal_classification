@@ -1,5 +1,12 @@
 import pandas as pd
 
+from datetime import datetime
+from timezonefinder import TimezoneFinder
+
+import pytz
+from dateutil.tz import tzutc
+from pytz import timezone
+
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 
@@ -61,8 +68,8 @@ class Pipeline:
         The Geopy library is utilized, with rate limiting (1 sec) in order to not tax the API.
         """
         # Set up the geolocation library
-        geolocator = Nominatim(user_agent="geoapiExercises")
-        geocode = RateLimiter(geolocator.reverse, min_delay_seconds=1)
+        geolocator = Nominatim(user_agent="Spatio_Tempt_Class")
+        geocode = RateLimiter(geolocator.reverse, min_delay_seconds=0.2)
 
         # Combine lat and long into coordinates
         latitudes = self.df.latitude.astype(str)
@@ -72,6 +79,37 @@ class Pipeline:
         # Retrieve countries from coordinates (rate limiting requests)
         locations = coordinates.apply(partial(geocode, language='en', exactly_one=True))
         self.df['country'] = locations.apply(lambda x: x.raw['address']['country'])
+
+    def generate_local_times(self):
+        """ Method converts UTC time to correct local time utilizing the specified sighting timezone.
+
+        The new column generated is labelled "local_time_observed_at" and can be found in interim data folder.
+
+        The date conversion utilizes both date and time in the UTC format.
+        This means, any day change (midnight -> next day) are accounted for.
+        The observed_on column is correct.
+        """
+        # Remove any rows with empty values
+        self.df.dropna(subset=['time_observed_at', 'time_zone'], inplace=True)
+        self.df.reset_index(drop=True, inplace=True)
+
+        # Standardize time zone formats
+        self.standardize_timezones()
+
+        # Generate local times by converting UTC to specified time zones
+        self.df['local_time_observed_at'] = self.df.apply(
+            lambda x: pd.to_datetime(x['time_observed_at'], utc=True).astimezone(pytz.timezone(x['time_zone'])), axis=1).astype(str)
+
+    def standardize_timezones(self):
+        """ Method generated timezones in a format accepted by the pytz library for use in the local time zone conversion
+
+        This method utilizes the observation coordinates to return the time zone of the sighting.
+        This timezone overwrites the "time_zone" column
+        """
+        finder = TimezoneFinder()
+
+        self.df['time_zone'] = self.df.apply(
+            lambda x: finder.timezone_at(lat=x['latitude'], lng=x['longitude']), axis=1)
 
     def write_interim_data(self):
         """ Method writes current state of df into interim data folder in csv format"""
@@ -91,6 +129,9 @@ if __name__ == "__main__":
 
     # Ensure that sighting dates follow the same format.
     pipeline.format_observation_dates()
+
+    # Generate country column from sighting coordinates
+    pipeline.coordinate_to_country()
 
     # Write to interim data
     pipeline.write_interim_data()

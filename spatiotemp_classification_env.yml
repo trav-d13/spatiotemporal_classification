@@ -11,4 +11,5 @@ dependencies:
   - python=3.10.9
   - git-lfs
   - geopy
+  - timezonefinder
 prefix: /home/travisdawson/anaconda3/envs/spatiotemp_class_env
