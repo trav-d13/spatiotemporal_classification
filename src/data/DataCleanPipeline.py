@@ -80,19 +80,24 @@ class Pipeline:
         locations = coordinates.apply(partial(geocode, language='en', exactly_one=True))
         self.df['country'] = locations.apply(lambda x: x.raw['address']['country'])
 
-    # TODO Generate acceptable time-zones from geopy as get:
-    # pytz.exceptions.UnknownTimeZoneError: 'Sydney'
     def generate_local_times(self):
+        """
+
+        The date conversion utilizes both date and time in the UTC format.
+        This means, any day change (midnight -> next day) are accounted for.
+        The observed_on column is correct.
+        :return:
+        """
         # Remove any rows with empty values
         self.df.dropna(subset=['time_observed_at', 'time_zone'], inplace=True)
         self.df.reset_index(drop=True, inplace=True)
 
-        # Generate timezones such that they are acceptable to pytz
+        # Standardize time zone formats
+        self.standardize_timezones()
 
-        # Access time_observed at column (UTC format) and local time zones
+        # Generate local times by converting UTC to specified time zones
         self.df['local_time_observed_at'] = self.df.apply(
-            lambda x: pd.to_datetime(x['time_observed_at'], utc=True).astimezone(pytz.timezone(x['time_zone'])), axis=1)
-        print(self.df)
+            lambda x: pd.to_datetime(x['time_observed_at'], utc=True).astimezone(pytz.timezone(x['time_zone'])), axis=1).astype(str)
 
     def standardize_timezones(self):
         finder = TimezoneFinder()
