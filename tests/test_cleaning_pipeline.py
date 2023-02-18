@@ -47,14 +47,14 @@ class TestCleaningPipeline(unittest.TestCase):
         pipeline = Pipeline(test_df=test_df)
         pipeline.coordinate_to_country()
         countries = pipeline.df['country']
-        print(countries)
 
         self.assertTrue(countries[0] == "Australia")
-        self.assertTrue(countries[1] == "India")
-        self.assertTrue(countries[2] == "South Africa")
+        self.assertTrue(countries[1] == "Spain")
+        self.assertTrue(countries[2] == "Germany")
         self.assertTrue(countries[3] == "New Zealand")
-        self.assertTrue(countries[4] == "Argentina")
-        self.assertTrue(countries[5] == "Belgium")
+        self.assertTrue(countries[5] == "United States")
+        self.assertTrue(countries[6] == "Namibia")
+        self.assertTrue(countries[7] == "Australia")
 
     def test_local_times(self):
         pipeline = Pipeline(test_df=test_df)
@@ -70,9 +70,14 @@ class TestCleaningPipeline(unittest.TestCase):
         pipeline = Pipeline(test_df=test_df)
         pipeline.standardize_timezones()
         timezones = pipeline.df['time_zone']
-        print(timezones)
 
         self.assertTrue(timezones[0] == "Australia/Sydney")
+        self.assertTrue(timezones[1] == "Europe/Madrid")
+        self.assertTrue(timezones[2] == "Europe/Berlin")
+        self.assertTrue(timezones[3] == "Pacific/Auckland")
+        self.assertTrue(timezones[5] == "America/Denver")
+        self.assertTrue(timezones[6] == "Africa/Windhoek")
+        self.assertTrue(timezones[7] == "Australia/Melbourne")
 
 
 if __name__ == '__main__':

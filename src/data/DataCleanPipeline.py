@@ -68,8 +68,8 @@ class Pipeline:
         The Geopy library is utilized, with rate limiting (1 sec) in order to not tax the API.
         """
         # Set up the geolocation library
-        geolocator = Nominatim(user_agent="geoapiExercises")
-        geocode = RateLimiter(geolocator.reverse, min_delay_seconds=1)
+        geolocator = Nominatim(user_agent="Spatio_Tempt_Class")
+        geocode = RateLimiter(geolocator.reverse, min_delay_seconds=0.2)
 
         # Combine lat and long into coordinates
         latitudes = self.df.latitude.astype(str)
