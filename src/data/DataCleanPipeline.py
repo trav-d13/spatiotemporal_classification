@@ -4,8 +4,6 @@ from datetime import datetime
 from timezonefinder import TimezoneFinder
 
 import pytz
-from dateutil.tz import tzutc
-from pytz import timezone
 
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
@@ -33,12 +31,40 @@ class Pipeline:
             self.write_path = root_dir() + "/data/interim/"
         else:
             self.df = test_df.copy(deep=True)
+            self.TEST = True
+
+    def activate_flow(self):
+        # Aggregate all observation files
+        self.aggregate_observations()
+
+        # Ensure that no sighting duplicates are within the aggregate set
+        self.enforce_unique_ids()
+
+        # Ensure that sighting dates follow the same format.
+        self.format_observation_dates()
+
+        # Generate country column from sighting coordinates
+        self.coordinate_to_country()
+
+        # Generate local observation times
+        self.generate_local_times()
+
+        # Remove peripheral columns
+        self.remove_peripheral_columns()
+
+        # Write to interim data
+        if not self.TEST: self.write_interim_data()
 
     def aggregate_observations(self):
-        """Method aggregates all observations from separate files, placing them within a df for manipulation"""
-        for dataset in self.datasets:
-            df_temp = pd.read_csv(self.resource_path + dataset)
-            self.df = pd.concat([self.df, df_temp])
+        """Method aggregates all observations from separate files, placing them within a df for manipulation
+
+        Method will check if dataframe is empty. This is to accommodate test cases which preloads the dataframe into
+         the dataframe
+        """
+        if not self.TEST:
+            for dataset in self.datasets:
+                df_temp = pd.read_csv(self.resource_path + dataset)
+                self.df = pd.concat([self.df, df_temp])
 
     def enforce_unique_ids(self):
         """Removal of any duplicate observations utilizing their observation id
@@ -98,7 +124,8 @@ class Pipeline:
 
         # Generate local times by converting UTC to specified time zones
         self.df['local_time_observed_at'] = self.df.apply(
-            lambda x: pd.to_datetime(x['time_observed_at'], utc=True).astimezone(pytz.timezone(x['time_zone'])), axis=1).astype(str)
+            lambda x: pd.to_datetime(x['time_observed_at'], utc=True).astimezone(pytz.timezone(x['time_zone'])),
+            axis=1).astype(str)
 
     def standardize_timezones(self):
         """ Method generated timezones in a format accepted by the pytz library for use in the local time zone conversion
@@ -111,6 +138,11 @@ class Pipeline:
         self.df['time_zone'] = self.df.apply(
             lambda x: finder.timezone_at(lat=x['latitude'], lng=x['longitude']), axis=1)
 
+    def remove_peripheral_columns(self):
+        self.df = self.df[['id', 'observed_on', 'local_time_observed_at', 'latitude', 'longitude', 'country',
+                           'positional_accuracy', 'public_positional_accuracy', 'image_url', 'license', 'geoprivacy',
+                           'taxon_geoprivacy', 'scientific_name', 'common_name', 'taxon_id']]
+
     def write_interim_data(self):
         """ Method writes current state of df into interim data folder in csv format"""
         file_name = "interim_observations.csv"
@@ -121,20 +153,5 @@ if __name__ == "__main__":
     # Create Pipeline object
     pipeline = Pipeline()
 
-    # Aggregate all observation files
-    pipeline.aggregate_observations()
-
-    # Ensure that no sighting duplicates are within the aggregate set
-    pipeline.enforce_unique_ids()
-
-    # Ensure that sighting dates follow the same format.
-    pipeline.format_observation_dates()
-
-    # Generate country column from sighting coordinates
-    pipeline.coordinate_to_country()
-
-    # Write to interim data
-    pipeline.write_interim_data()
-
-    # Display df head
-    print(pipeline.df.head())
+    # Activate pipeline flow
+    pipeline.activate_flow()
