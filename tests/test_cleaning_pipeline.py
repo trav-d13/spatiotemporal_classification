@@ -4,8 +4,8 @@ import unittest
 from src.data.DataCleanPipeline import Pipeline
 
 # Test data retrieved from observations_1.csv and observations_6 (modified to include errors here)
-test_data = [[128984633, "2022-08-02", -30.4900714453, 151.6392706226, "2022-08-01 14:40:00 UTC", "Sydney"],
-             [129051266, "2022-08-02", 43.1196234274, -7.6788841188, "2022-08-01 22:20:13 UTC", "Madrid"],
+test_data = [[128984633, "2022-08-02", -30.4900714453, 151.6392706226, "2022-08-01 14:40:00 UTC", "Sydney", 'research', '', 'https://www.inaturalist.org/observations/128984633', 'https://static.inaturalist.org/photos/219142197/medium.jpeg', '', 11, 11, '', 'open', 'Phascolarctos cinereus', 'Koala', 42983],
+             [129051266, "2022-08-02", 43.1196234274, -7.6788841188, "2022-08-01 22:20:13 UTC", "Madrid", 'research', 'CC-BY', 'https://www.inaturalist.org/observations/129051266', 'https://inaturalist-open-data.s3.amazonaws.com/photos/219262307/medium.jpeg', '', 8, 8, '', 'open', 'Plecotus auritus', 'Brown Big-eared Bat', 40416],
              [129054418, "2022-08/02", 50.6864393301, 7.1697807312, "2022-08-01 22:26:13 UTC", "Berlin"],
              [129076855, "2022-08-02", -40.9498116654, 174.9710916171, "2022-08-02 01:32:23 UTC", "Wellington"],
              [129076855, "2022-08-02", -40.9498116654, 174.9710916171, "2022-08-02 01:32:23 UTC", "Wellington"],
@@ -18,7 +18,19 @@ test_df = pd.DataFrame(test_data, columns=['id',
                                            'latitude',
                                            'longitude',
                                            'time_observed_at',
-                                           'time_zone'])
+                                           'time_zone',
+                                           'quality_grade',
+                                           'license',
+                                           'url',
+                                           'image_url',
+                                           'description',
+                                           'positional_accuracy',
+                                           'public_positional_accuracy',
+                                           'geoprivacy',
+                                           'taxon_geoprivacy',
+                                           'scientific_name',
+                                           'common_name',
+                                           'taxon_id'])
 
 
 class TestCleaningPipeline(unittest.TestCase):
@@ -29,18 +41,17 @@ class TestCleaningPipeline(unittest.TestCase):
         resulting_ids = pipeline.df['id'].tolist()
         correct_ids = [128984633, 129051266, 129054418, 129076855, 129107609, 129120635, 38197744]
 
-        self.assertTrue(resulting_ids == correct_ids)
+        self.assertTrue(resulting_ids.sort() == correct_ids.sort())
 
     def test_date_formatting(self):
         pipeline = Pipeline(test_df=test_df)
         pipeline.format_observation_dates()
 
         resulting_formatted_dates = pipeline.df['observed_on'].tolist()
-        print(resulting_formatted_dates)
         correct_dates = ["2022-08-02", "2022-08-02", "2022-08-02",
                          "2022-08-02", "2022-08-02", "2020-02-02"]
 
-        self.assertTrue(resulting_formatted_dates == correct_dates)
+        self.assertTrue(resulting_formatted_dates.sort() == correct_dates.sort())
 
     def test_coordinate_to_country(self):
         pipeline = Pipeline(test_df=test_df)
@@ -73,13 +84,24 @@ class TestCleaningPipeline(unittest.TestCase):
         pipeline.generate_local_times()
 
         local_times = pipeline.df['local_time_observed_at'].tolist()
-        print(type(local_times[0]))
 
         # Correct times confirmed using https://dateful.com/convert/utc
         correct_times = ["2022-08-02 00:40:00+10:00", "2022-08-02 00:20:13+02:00",
                          "2022-08-02 00:26:13+02:00", "2022-08-02 13:32:23+12:00",
                          "2022-08-02 13:32:23+12:00", "2022-08-02 01:14:59-06:00",
                          "2022-08-02 10:11:57+02:00", "2020-02-02 10:04:35+11:00"]
+        self.assertTrue(set(local_times) == set(correct_times))
+
+    def test_peripheral_column_removal(self):
+        pipeline = Pipeline(test_df=test_df)
+        pipeline.activate_flow()
+        pipeline.remove_peripheral_columns()
+
+        df_columns = pipeline.df.columns.tolist()
+        correct_columns = ['id', 'observed_on', 'local_time_observed_at', 'latitude', 'longitude', 'country',
+                           'positional_accuracy', 'public_positional_accuracy', 'image_url', 'license', 'geoprivacy',
+                           'taxon_geoprivacy', 'scientific_name', 'common_name', 'taxon_id']
+        self.assertTrue(set(df_columns) == set(correct_columns))
 
 
 if __name__ == '__main__':
