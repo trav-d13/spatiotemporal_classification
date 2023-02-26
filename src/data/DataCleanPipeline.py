@@ -44,6 +44,7 @@ class Pipeline:
         self.enforce_unique_ids()
 
         # Continuation from interrupt/ start from scratch
+        self.continuation()
 
         # Ensure that sighting dates follow the same format.
         self.format_observation_dates()
@@ -66,9 +67,10 @@ class Pipeline:
         Method will check if dataframe is empty. This is to accommodate test cases which preloads the dataframe into
          the dataframe
         """
-        for dataset in self.datasets:
-            df_temp = pd.read_csv(self.resource_path + dataset)
-            self.df = pd.concat([self.df, df_temp])
+        if not self.TEST:
+            for dataset in self.datasets:
+                df_temp = pd.read_csv(self.resource_path + dataset)
+                self.df = pd.concat([self.df, df_temp])
 
     def enforce_unique_ids(self):
         """Removal of any duplicate observations utilizing their observation id
@@ -84,13 +86,12 @@ class Pipeline:
 
         if self.TEST and test_interim_df is not None:
             interim_df = pd.concat([interim_df, test_interim_df])
-        elif not self.TEST:
+        elif not self.TEST and os.path.isfile():
             interim_df = pd.read_csv(self.write_path + self.interim_file)
 
         if not interim_df.empty:
             interim_df.set_index('id', inplace=True)
             self.df = self.df.loc[self.df.index.difference(interim_df.index),]
-            print(self.df.head())
 
     def format_observation_dates(self):
         """ Method ensures that raw data dates follow format yyyy-mm-dd. If the dates deviate they are removed from the dataframe.
@@ -117,13 +118,13 @@ class Pipeline:
         geocode = RateLimiter(geolocator.reverse, min_delay_seconds=0.2)
 
         # Combine lat and long into coordinates
-        latitudes = self.df.latitude.astype(str)
-        longitudes = self.df.longitude.astype(str)
-        coordinates = latitudes + ", " + longitudes
+        latitudes = pd.Series(self.df.latitude.values.astype(str))
+        longitudes = pd.Series(self.df.longitude.values.astype(str))
+        coordinates = latitudes + ', ' + longitudes
 
         # Retrieve countries from coordinates (rate limiting requests)
         locations = coordinates.apply(partial(geocode, language='en', exactly_one=True))
-        self.df['country'] = locations.apply(lambda x: x.raw['address']['country'])
+        self.df['country'] = locations.apply(lambda x: x.raw['address']['country']).values
 
     def generate_local_times(self):
         """ Method converts UTC time to correct local time utilizing the specified sighting timezone.
@@ -158,7 +159,7 @@ class Pipeline:
             lambda x: finder.timezone_at(lat=x['latitude'], lng=x['longitude']), axis=1)
 
     def remove_peripheral_columns(self):
-        self.df = self.df[['id', 'observed_on', 'local_time_observed_at', 'latitude', 'longitude', 'country',
+        self.df = self.df[['observed_on', 'local_time_observed_at', 'latitude', 'longitude', 'country',
                            'positional_accuracy', 'public_positional_accuracy', 'image_url', 'license', 'geoprivacy',
                            'taxon_geoprivacy', 'scientific_name', 'common_name', 'taxon_id']]
 
