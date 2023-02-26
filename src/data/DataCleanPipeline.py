@@ -136,7 +136,6 @@ class Pipeline:
         """
         # Remove any rows with empty values
         self.df.dropna(subset=['time_observed_at', 'time_zone'], inplace=True)
-        self.df.reset_index(drop=True, inplace=True)
 
         # Standardize time zone formats
         self.standardize_timezones()
