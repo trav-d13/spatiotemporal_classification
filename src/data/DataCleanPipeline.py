@@ -92,6 +92,7 @@ class Pipeline:
         if not interim_df.empty:
             interim_df.set_index('id', inplace=True)
             self.df = self.df.loc[self.df.index.difference(interim_df.index), ]
+            print(self.df.head())
 
     def format_observation_dates(self):
         """ Method ensures that raw data dates follow format yyyy-mm-dd. If the dates deviate they are removed from the dataframe.
