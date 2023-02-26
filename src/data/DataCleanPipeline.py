@@ -83,13 +83,12 @@ class Pipeline:
         interim_df = pd.DataFrame()
 
         if self.TEST and test_interim_df is not None:
-            interim_df = test_interim_df.copy(deep=True).set_index('id', inplace=True)
-        else:
-            interim_data_flag = os.path.isfile(self.write_path + self.interim_file)
-        elif interim_data_flag:
-            interim_df = pd.read_csv(self.write_path + self.interim_file).set_index('id', inplace=True)
+            interim_df = pd.concat([interim_df, test_interim_df])
+        elif not self.TEST:
+            interim_df = pd.read_csv(self.write_path + self.interim_file)
 
         if not interim_df.empty:
+            interim_df.set_index('id', inplace=True)
             self.df = self.df.loc[self.df.index.difference(interim_df.index),]
             print(self.df.head())
 

@@ -26,17 +26,6 @@ raw_data_columns = ['id', 'observed_on', 'latitude', 'longitude', 'time_observed
 
 test_df = pd.DataFrame(test_data, columns=raw_data_columns)
 
-# Interim dataframe
-
-interim_data_columns = ['id', 'observed_on', 'local_time_observed_at', 'latitude', 'longitude',
-                        'country', 'positional_accuracy', 'public_positional_accuracy', 'image_url',
-                        'license', 'geoprivacy', 'taxon_geoprivacy', 'scientific_name', 'common_name',
-                        'taxon_id']
-interim_data = [[128984633, '2022-08-02', '2022-08-02 00:40:00+10:00', -30.4900714453, 151.6392706226,
-                'Australia', 11, 11, 'https://static.inaturalist.org/photos/219142197/medium.jpeg', '', '',
-                'open', 'Phascolarctos cinereus', 'Koala', 42983]]
-test_interim_df = pd.DataFrame(interim_data, columns=interim_data_columns)
-
 
 class TestCleaningPipeline(unittest.TestCase):
     def test_unique_id(self):
@@ -49,9 +38,25 @@ class TestCleaningPipeline(unittest.TestCase):
         self.assertTrue(resulting_ids.sort() == correct_ids.sort())
 
     def test_continuation(self):
+        # Interim dataframe setup
+        interim_data_columns = ['id', 'observed_on', 'local_time_observed_at', 'latitude', 'longitude',
+                                'country', 'positional_accuracy', 'public_positional_accuracy', 'image_url',
+                                'license', 'geoprivacy', 'taxon_geoprivacy', 'scientific_name', 'common_name',
+                                'taxon_id']
+        interim_data = [[128984633, '2022-08-02', '2022-08-02 00:40:00+10:00', -30.4900714453, 151.6392706226,
+                         'Australia', 11, 11, 'https://static.inaturalist.org/photos/219142197/medium.jpeg', '', '',
+                         'open', 'Phascolarctos cinereus', 'Koala', 42983]]
+        test_interim_df = pd.DataFrame(interim_data, columns=interim_data_columns)
+
+        # Pipeline and continuation function
         pipeline = Pipeline(test_df=test_df)
         pipeline.enforce_unique_ids()
         pipeline.continuation(test_interim_df=test_interim_df)
+
+        # Testing
+        indices_to_continue = pipeline.df.index.to_list()
+        correct_indices = [129051266, 129054418, 129076855, 129107609, 129120635, 38197744]
+        self.assertTrue(indices_to_continue.sort() == correct_indices.sort())
 
     def test_date_formatting(self):
         pipeline = Pipeline(test_df=test_df)
