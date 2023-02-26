@@ -30,12 +30,13 @@ test_df = pd.DataFrame(test_data, columns=raw_data_columns)
 
 class TestCleaningPipeline(unittest.TestCase):
     def test_unique_id(self):
+        # Pipeline
         pipeline = Pipeline(test_df=test_df)
         pipeline.enforce_unique_ids()
-
         resulting_ids = pipeline.df['id'].tolist()
-        correct_ids = [128984633, 129051266, 129054418, 129076855, 129107609, 129120635, 38197744]
 
+        # Testing
+        correct_ids = [128984633, 129051266, 129054418, 129076855, 129107609, 129120635, 38197744]
         self.assertTrue(resulting_ids.sort() == correct_ids.sort())
 
     def test_continuation(self):
@@ -50,31 +51,34 @@ class TestCleaningPipeline(unittest.TestCase):
                         [38197744, "2020-02-02", -38.1974245434, 145.4793232007, "2020-02-01 23:04:35 UTC", "Asia/Magadan"]]
         test_interim_df = pd.DataFrame(interim_data, columns=interim_data_columns)
 
-        # Pipeline and continuation function
+        # Pipeline
         pipeline = Pipeline(test_df=test_df)
         pipeline.enforce_unique_ids()
         pipeline.continuation(test_interim_df=test_interim_df)
+        indices_to_continue = pipeline.df.index.to_list()
 
         # Testing
-        indices_to_continue = pipeline.df.index.to_list()
         correct_indices = [129051266, 129054418, 129076855, 129107609, 129120635]
         self.assertTrue(indices_to_continue.sort() == correct_indices.sort())
 
     def test_date_formatting(self):
+        # Pipeline
         pipeline = Pipeline(test_df=test_df)
         pipeline.format_observation_dates()
-
         resulting_formatted_dates = pipeline.df['observed_on'].tolist()
+
+        # Testing
         correct_dates = ["2022-08-02", "2022-08-02", "2022-08-02",
                          "2022-08-02", "2022-08-02", "2020-02-02"]
-
         self.assertTrue(resulting_formatted_dates.sort() == correct_dates.sort())
 
     def test_coordinate_to_country(self):
+        # Pipeline
         pipeline = Pipeline(test_df=test_df)
         pipeline.coordinate_to_country()
         countries = pipeline.df['country'].values
 
+        # Testing
         self.assertTrue(countries[0] == "Australia")
         self.assertTrue(countries[1] == "Spain")
         self.assertTrue(countries[2] == "Germany")
@@ -84,10 +88,12 @@ class TestCleaningPipeline(unittest.TestCase):
         self.assertTrue(countries[7] == "Australia")
 
     def test_timezone_standardization(self):
+        # Pipeline
         pipeline = Pipeline(test_df=test_df)
         pipeline.standardize_timezones()
         timezones = pipeline.df['time_zone'].values
 
+        # Testing
         self.assertTrue(timezones[0] == "Australia/Sydney")
         self.assertTrue(timezones[1] == "Europe/Madrid")
         self.assertTrue(timezones[2] == "Europe/Berlin")
@@ -97,11 +103,12 @@ class TestCleaningPipeline(unittest.TestCase):
         self.assertTrue(timezones[7] == "Australia/Melbourne")
 
     def test_local_times(self):
+        # Pipeline
         pipeline = Pipeline(test_df=test_df)
         pipeline.generate_local_times()
-
         local_times = pipeline.df['local_time_observed_at'].tolist()
 
+        # Testing
         # Correct times confirmed using https://dateful.com/convert/utc
         correct_times = ["2022-08-02 00:40:00+10:00", "2022-08-02 00:20:13+02:00",
                          "2022-08-02 00:26:13+02:00", "2022-08-02 13:32:23+12:00",
@@ -110,10 +117,12 @@ class TestCleaningPipeline(unittest.TestCase):
         self.assertTrue(set(local_times) == set(correct_times))
 
     def test_peripheral_column_removal(self):
+        # Pipeline
         pipeline = Pipeline(test_df=test_df)
         pipeline.activate_flow()
-
         df_columns = pipeline.df.columns.tolist()
+
+        # Testing
         correct_columns = ['observed_on', 'local_time_observed_at', 'latitude', 'longitude', 'country',
                            'positional_accuracy', 'public_positional_accuracy', 'image_url', 'license', 'geoprivacy',
                            'taxon_geoprivacy', 'scientific_name', 'common_name', 'taxon_id']
