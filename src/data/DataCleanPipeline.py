@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 
 from datetime import datetime
 from timezonefinder import TimezoneFinder
@@ -29,6 +30,8 @@ class Pipeline:
             self.datasets = datasets
             self.resource_path = root_dir() + "/data/raw/"
             self.write_path = root_dir() + "/data/interim/"
+            self.interim_file = "interim_observations.csv"
+            self.TEST = False
         else:
             self.df = test_df.copy(deep=True)
             self.TEST = True
@@ -39,6 +42,8 @@ class Pipeline:
 
         # Ensure that no sighting duplicates are within the aggregate set
         self.enforce_unique_ids()
+
+        # Continuation from interrupt/ start from scratch
 
         # Ensure that sighting dates follow the same format.
         self.format_observation_dates()
@@ -53,7 +58,7 @@ class Pipeline:
         self.remove_peripheral_columns()
 
         # Write to interim data
-        if not self.TEST: self.write_interim_data()
+        self.write_interim_data()
 
     def aggregate_observations(self):
         """Method aggregates all observations from separate files, placing them within a df for manipulation
@@ -61,10 +66,9 @@ class Pipeline:
         Method will check if dataframe is empty. This is to accommodate test cases which preloads the dataframe into
          the dataframe
         """
-        if not self.TEST:
-            for dataset in self.datasets:
-                df_temp = pd.read_csv(self.resource_path + dataset)
-                self.df = pd.concat([self.df, df_temp])
+        for dataset in self.datasets:
+            df_temp = pd.read_csv(self.resource_path + dataset)
+            self.df = pd.concat([self.df, df_temp])
 
     def enforce_unique_ids(self):
         """Removal of any duplicate observations utilizing their observation id
@@ -72,6 +76,22 @@ class Pipeline:
         In place duplicate removal such that changes are effected directly within df
         """
         self.df.drop_duplicates(subset=['id'], keep='first', inplace=True)
+
+    def continuation(self, test_interim_df=None):
+        self.df.set_index('id', inplace=True)
+
+        interim_df = pd.DataFrame()
+
+        if self.TEST and test_interim_df is not None:
+            interim_df = test_interim_df.copy(deep=True).set_index('id', inplace=True)
+        else:
+            interim_data_flag = os.path.isfile(self.write_path + self.interim_file)
+        elif interim_data_flag:
+            interim_df = pd.read_csv(self.write_path + self.interim_file).set_index('id', inplace=True)
+
+        if not interim_df.empty:
+            self.df = self.df.loc[self.df.index.difference(interim_df.index),]
+            print(self.df.head())
 
     def format_observation_dates(self):
         """ Method ensures that raw data dates follow format yyyy-mm-dd. If the dates deviate they are removed from the dataframe.
@@ -145,8 +165,8 @@ class Pipeline:
 
     def write_interim_data(self):
         """ Method writes current state of df into interim data folder in csv format"""
-        file_name = "interim_observations.csv"
-        self.df.to_csv(self.write_path + file_name, index=False)
+        if not self.TEST:
+            self.df.to_csv(self.write_path + self.interim_file, index=True)
 
 
 if __name__ == "__main__":
