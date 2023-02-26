@@ -31,6 +31,7 @@ class Pipeline:
             self.resource_path = root_dir() + "/data/raw/"
             self.write_path = root_dir() + "/data/interim/"
             self.interim_file = "interim_observations.csv"
+            self.interim_exists = os.path.isfile(self.write_path + self.interim_file)
             self.TEST = False
         else:
             self.df = test_df.copy(deep=True)
@@ -86,7 +87,7 @@ class Pipeline:
 
         if self.TEST and test_interim_df is not None:
             interim_df = pd.concat([interim_df, test_interim_df])
-        elif not self.TEST and os.path.isfile(self.write_path + self.interim_file):
+        elif not self.TEST and self.interim_exists:
             interim_df = pd.read_csv(self.write_path + self.interim_file)
 
         if not interim_df.empty:
@@ -165,7 +166,11 @@ class Pipeline:
     def write_interim_data(self):
         """ Method writes current state of df into interim data folder in csv format"""
         if not self.TEST:
-            self.df.to_csv(self.write_path + self.interim_file, index=True)
+            if self.interim_exists:
+                self.df.to_csv(self.write_path + self.interim_file, mode='a', index=True, header=False)
+            else:
+                self.df.to_csv(self.write_path + self.interim_file, mode='w', index=True, header=True)
+
 
 
 if __name__ == "__main__":

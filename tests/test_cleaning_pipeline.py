@@ -4,6 +4,7 @@ import unittest
 from src.data.DataCleanPipeline import Pipeline
 
 # Test data retrieved from observations_1.csv and observations_6 (modified to include errors here)
+# TODO Finish writing full test data
 test_data = [
     [128984633, "2022-08-02", -30.4900714453, 151.6392706226, "2022-08-01 14:40:00 UTC", "Sydney", 'research', '',
      'https://www.inaturalist.org/observations/128984633',
@@ -45,7 +46,8 @@ class TestCleaningPipeline(unittest.TestCase):
                                 'taxon_id']
         interim_data = [[128984633, '2022-08-02', '2022-08-02 00:40:00+10:00', -30.4900714453, 151.6392706226,
                          'Australia', 11, 11, 'https://static.inaturalist.org/photos/219142197/medium.jpeg', '', '',
-                         'open', 'Phascolarctos cinereus', 'Koala', 42983]]
+                         'open', 'Phascolarctos cinereus', 'Koala', 42983],
+                        [38197744, "2020-02-02", -38.1974245434, 145.4793232007, "2020-02-01 23:04:35 UTC", "Asia/Magadan"]]
         test_interim_df = pd.DataFrame(interim_data, columns=interim_data_columns)
 
         # Pipeline and continuation function
@@ -55,7 +57,7 @@ class TestCleaningPipeline(unittest.TestCase):
 
         # Testing
         indices_to_continue = pipeline.df.index.to_list()
-        correct_indices = [129051266, 129054418, 129076855, 129107609, 129120635, 38197744]
+        correct_indices = [129051266, 129054418, 129076855, 129107609, 129120635]
         self.assertTrue(indices_to_continue.sort() == correct_indices.sort())
 
     def test_date_formatting(self):
