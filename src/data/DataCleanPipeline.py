@@ -1,7 +1,7 @@
 import pandas as pd
 import os
+import sys
 
-from datetime import datetime
 from timezonefinder import TimezoneFinder
 
 import pytz
@@ -24,13 +24,14 @@ class Pipeline:
         test_df DataFrame: A direct dataframe insert for pipeline testing purposes
     """
 
+    interim_file = "interim_observations.csv"
+
     def __init__(self, datasets=['observations_sample.csv'], test_df=None):
         if test_df is None:
             self.df = pd.DataFrame()
             self.datasets = datasets
             self.resource_path = root_dir() + "/data/raw/"
             self.write_path = root_dir() + "/data/interim/"
-            self.interim_file = "interim_observations.csv"
             self.interim_exists = os.path.isfile(self.write_path + self.interim_file)
             self.TEST = False
         else:
@@ -46,6 +47,9 @@ class Pipeline:
 
         # Continuation from interrupt/ start from scratch
         self.continuation()
+
+        # Remove any NaN types from columns undergoing computation
+        self.remove_na_working_columns()
 
         # Ensure that sighting dates follow the same format.
         self.format_observation_dates()
@@ -93,7 +97,12 @@ class Pipeline:
         if not interim_df.empty:
             interim_df.set_index('id', inplace=True)
             self.df = self.df.loc[self.df.index.difference(interim_df.index), ]
-            print(self.df.head())
+
+    def remove_na_working_columns(self):
+        self.df.dropna(subset=['observed_on', 'latitude', 'longitude', 'time_observed_at', 'time_zone'], inplace=True)
+        if self.df.empty:
+            print("*********** No further correctly format to process ***********")
+            sys.exit()
 
     def format_observation_dates(self):
         """ Method ensures that raw data dates follow format yyyy-mm-dd. If the dates deviate they are removed from the dataframe.
@@ -136,16 +145,14 @@ class Pipeline:
         This means, any day change (midnight -> next day) are accounted for.
         The observed_on column is correct.
         """
-        # Remove any rows with empty values
-        self.df.dropna(subset=['time_observed_at', 'time_zone'], inplace=True)
 
         # Standardize time zone formats
         self.standardize_timezones()
 
         # Generate local times by converting UTC to specified time zones
         self.df['local_time_observed_at'] = self.df.apply(
-            lambda x: pd.to_datetime(x['time_observed_at'], utc=True).astimezone(pytz.timezone(x['time_zone'])),
-            axis=1).astype(str)
+                lambda x: pd.to_datetime(x['time_observed_at'], utc=True).astimezone(pytz.timezone(x['time_zone'])),
+                axis=1).astype(str)
 
     def standardize_timezones(self):
         """ Method generated timezones in a format accepted by the pytz library for use in the local time zone conversion

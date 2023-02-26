@@ -19,7 +19,7 @@ test_data = [
     [129076855, "2022-08-02", -40.9498116654, 174.9710916171, "2022-08-02 01:32:23 UTC", "Wellington"],
     [129107609, "202g-08-02", 43.952764223, -110.6115040714, "2022-08-02 07:14:59 UTC", "Mountain Time (US & Canada)"],
     [129120635, "2022-08-02", -18.83915, 16.9536, "2022-08-02 08:11:57 UTC", "Africa/Windhoek"],
-    [38197744, "2020-02-02", -38.1974245434, 145.4793232007, "2020-02-01 23:04:35 UTC", "Asia/Magadan"]]
+    [38197744, "2020-02-02", -38.1974245434, 145.4793232007, "2020-02-01 23:04:35 UTC", "Asia/Magadan"],]
 
 raw_data_columns = ['id', 'observed_on', 'latitude', 'longitude', 'time_observed_at', 'time_zone', 'quality_grade',
                     'license', 'url', 'image_url', 'description', 'positional_accuracy', 'public_positional_accuracy',
@@ -122,3 +122,4 @@ class TestCleaningPipeline(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
