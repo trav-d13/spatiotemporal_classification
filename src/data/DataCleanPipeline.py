@@ -86,12 +86,12 @@ class Pipeline:
 
         if self.TEST and test_interim_df is not None:
             interim_df = pd.concat([interim_df, test_interim_df])
-        elif not self.TEST and os.path.isfile():
+        elif not self.TEST and os.path.isfile(self.write_path + self.interim_file):
             interim_df = pd.read_csv(self.write_path + self.interim_file)
 
         if not interim_df.empty:
             interim_df.set_index('id', inplace=True)
-            self.df = self.df.loc[self.df.index.difference(interim_df.index),]
+            self.df = self.df.loc[self.df.index.difference(interim_df.index), ]
 
     def format_observation_dates(self):
         """ Method ensures that raw data dates follow format yyyy-mm-dd. If the dates deviate they are removed from the dataframe.
@@ -106,7 +106,6 @@ class Pipeline:
                                                 errors='coerce',
                                                 exact=True).astype(str)
         self.df.query('observed_on != "NaT"', inplace=True)
-        self.df.reset_index(drop=True, inplace=True)
 
     def coordinate_to_country(self):
         """ Method takes data coordinates, and identifies the country of origin, creating a Country column within Interim data

@@ -68,11 +68,10 @@ class TestCleaningPipeline(unittest.TestCase):
 
         self.assertTrue(resulting_formatted_dates.sort() == correct_dates.sort())
 
-    # TODO Fix issue with index id
     def test_coordinate_to_country(self):
         pipeline = Pipeline(test_df=test_df)
         pipeline.coordinate_to_country()
-        countries = pipeline.df['country']
+        countries = pipeline.df['country'].values
 
         self.assertTrue(countries[0] == "Australia")
         self.assertTrue(countries[1] == "Spain")
@@ -82,11 +81,10 @@ class TestCleaningPipeline(unittest.TestCase):
         self.assertTrue(countries[6] == "Namibia")
         self.assertTrue(countries[7] == "Australia")
 
-    # TODO Fix issue with index id
     def test_timezone_standardization(self):
         pipeline = Pipeline(test_df=test_df)
         pipeline.standardize_timezones()
-        timezones = pipeline.df['time_zone']
+        timezones = pipeline.df['time_zone'].values
 
         self.assertTrue(timezones[0] == "Australia/Sydney")
         self.assertTrue(timezones[1] == "Europe/Madrid")
@@ -109,14 +107,12 @@ class TestCleaningPipeline(unittest.TestCase):
                          "2022-08-02 10:11:57+02:00", "2020-02-02 10:04:35+11:00"]
         self.assertTrue(set(local_times) == set(correct_times))
 
-    # TODO Fix issue with index id
     def test_peripheral_column_removal(self):
         pipeline = Pipeline(test_df=test_df)
         pipeline.activate_flow()
-        pipeline.remove_peripheral_columns()
 
         df_columns = pipeline.df.columns.tolist()
-        correct_columns = ['id', 'observed_on', 'local_time_observed_at', 'latitude', 'longitude', 'country',
+        correct_columns = ['observed_on', 'local_time_observed_at', 'latitude', 'longitude', 'country',
                            'positional_accuracy', 'public_positional_accuracy', 'image_url', 'license', 'geoprivacy',
                            'taxon_geoprivacy', 'scientific_name', 'common_name', 'taxon_id']
         self.assertTrue(set(df_columns) == set(correct_columns))
