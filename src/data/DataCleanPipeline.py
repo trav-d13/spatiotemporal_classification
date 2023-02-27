@@ -13,6 +13,8 @@ from functools import partial
 
 from Config import root_dir
 
+from datetime import datetime
+
 
 class Pipeline:
     """ Pipeline to clean raw data into interim data source.
@@ -25,7 +27,7 @@ class Pipeline:
     """
 
     interim_file = "interim_observations.csv"
-    batch_size = 100
+    batch_size = 50
 
     def __init__(self, datasets=['observations_sample.csv'], test_df=None):
         if test_df is None:
@@ -42,7 +44,7 @@ class Pipeline:
             self.TEST = True
             self.row_sum = len(self.df_whole.index)
 
-
+        self.start_time = datetime.now()
 
     def activate_flow(self):
         # Aggregate all observation files
@@ -63,7 +65,7 @@ class Pipeline:
             self.format_observation_dates()
 
             # Generate country column from sighting coordinates
-            self.coordinate_to_country()
+            self.coordinate_to_country_rate_limited()
 
             # Generate local observation times
             self.generate_local_times()
@@ -104,12 +106,13 @@ class Pipeline:
 
         if not interim_df.empty:
             interim_df.set_index('id', inplace=True)
-            self.df_whole = self.df_whole.loc[self.df_whole.index.difference(interim_df.index), ]
+            self.df_whole = self.df_whole.loc[self.df_whole.index.difference(interim_df.index),]
 
         self.row_sum = len(self.df_whole.index)
 
     def remove_na_working_columns(self):
-        self.df_whole.dropna(subset=['observed_on', 'latitude', 'longitude', 'time_observed_at', 'time_zone'], inplace=True)
+        self.df_whole.dropna(subset=['observed_on', 'latitude', 'longitude', 'time_observed_at', 'time_zone'],
+                             inplace=True)
         if self.df_whole.empty:
             print("*********** No further correctly format to process ***********")
             sys.exit()
@@ -135,11 +138,11 @@ class Pipeline:
         progress_bar_length = 100
         percentage_complete = (self.row_sum - rows_remaining) / self.row_sum
         filled = int(progress_bar_length * percentage_complete)
+        running_time = datetime.now() - self.start_time
 
         bar = '=' * filled + '-' * (progress_bar_length - filled)
         percentage_display = round(100 * percentage_complete, 1)
-        # print('[%s] %s%s ...%s\r' % (bar, percentage_display, '%', ''))
-        sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percentage_display, '%', ''))
+        sys.stdout.write('\r[%s] %s%s ... running: %s' %(bar, percentage_display, '%', running_time))
         sys.stdout.flush()
 
     def format_observation_dates(self):
@@ -164,7 +167,7 @@ class Pipeline:
         """
         # Set up the geolocation library
         geolocator = Nominatim(user_agent="Spatio_Tempt_Class")
-        geocode = RateLimiter(geolocator.reverse, min_delay_seconds=0.2)
+        geocode = RateLimiter(geolocator.reverse, min_delay_seconds=2)
 
         # Combine lat and long into coordinates
         latitudes = pd.Series(self.df.latitude.values.astype(str))
@@ -204,8 +207,8 @@ class Pipeline:
 
         # Generate local times by converting UTC to specified time zones
         self.df['local_time_observed_at'] = self.df.apply(
-                lambda x: pd.to_datetime(x['time_observed_at'], utc=True).astimezone(pytz.timezone(x['time_zone'])),
-                axis=1).astype(str)
+            lambda x: pd.to_datetime(x['time_observed_at'], utc=True).astimezone(pytz.timezone(x['time_zone'])),
+            axis=1).astype(str)
 
     def standardize_timezones(self):
         """ Method generated timezones in a format accepted by the pytz library for use in the local time zone conversion
@@ -234,7 +237,7 @@ class Pipeline:
 
 if __name__ == "__main__":
     # Create Pipeline object
-    pipeline = Pipeline(datasets=['observations_1.csv'])
+    pipeline = Pipeline()
 
     # Activate pipeline flow
     pipeline.activate_flow()
