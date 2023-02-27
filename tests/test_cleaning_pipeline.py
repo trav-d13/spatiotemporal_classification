@@ -130,7 +130,7 @@ class TestCleaningPipeline(unittest.TestCase):
         df_columns = pipeline.df.columns.tolist()
 
         # Testing
-        correct_columns = ['observed_on', 'local_time_observed_at', 'latitude', 'longitude', 'country',
+        correct_columns = ['observed_on', 'local_time_observed_at', 'latitude', 'longitude',
                            'positional_accuracy', 'public_positional_accuracy', 'image_url', 'license', 'geoprivacy',
                            'taxon_geoprivacy', 'scientific_name', 'common_name', 'taxon_id']
         self.assertTrue(set(df_columns) == set(correct_columns))

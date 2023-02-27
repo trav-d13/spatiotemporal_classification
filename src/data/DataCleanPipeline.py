@@ -27,7 +27,7 @@ class Pipeline:
     """
 
     interim_file = "interim_observations.csv"
-    batch_size = 50
+    batch_size = 1000
 
     def __init__(self, datasets=['observations_sample.csv'], test_df=None):
         if test_df is None:
@@ -65,7 +65,7 @@ class Pipeline:
             self.format_observation_dates()
 
             # Generate country column from sighting coordinates
-            self.coordinate_to_country_rate_limited()
+            # self.coordinate_to_country_rate_limited()
 
             # Generate local observation times
             self.generate_local_times()
@@ -159,6 +159,7 @@ class Pipeline:
                                                 exact=True).astype(str)
         self.df.query('observed_on != "NaT"', inplace=True)
 
+    # TODO Move into interim processing due to extreme time due to rate limiting
     # TODO Update documentation (explicitly rate limited)
     def coordinate_to_country_rate_limited(self):
         """ Method takes data coordinates, and identifies the country of origin, creating a Country column within Interim data
@@ -167,7 +168,7 @@ class Pipeline:
         """
         # Set up the geolocation library
         geolocator = Nominatim(user_agent="Spatio_Tempt_Class")
-        geocode = RateLimiter(geolocator.reverse, min_delay_seconds=2)
+        geocode = RateLimiter(geolocator.reverse, min_delay_seconds=1)
 
         # Combine lat and long into coordinates
         latitudes = pd.Series(self.df.latitude.values.astype(str))
@@ -222,7 +223,7 @@ class Pipeline:
             lambda x: finder.timezone_at(lat=x['latitude'], lng=x['longitude']), axis=1)
 
     def remove_peripheral_columns(self):
-        self.df = self.df[['observed_on', 'local_time_observed_at', 'latitude', 'longitude', 'country',
+        self.df = self.df[['observed_on', 'local_time_observed_at', 'latitude', 'longitude',
                            'positional_accuracy', 'public_positional_accuracy', 'image_url', 'license', 'geoprivacy',
                            'taxon_geoprivacy', 'scientific_name', 'common_name', 'taxon_id']]
 
@@ -237,7 +238,7 @@ class Pipeline:
 
 if __name__ == "__main__":
     # Create Pipeline object
-    pipeline = Pipeline()
+    pipeline = Pipeline(datasets=['observations_1.csv'])
 
     # Activate pipeline flow
     pipeline.activate_flow()
