@@ -58,9 +58,6 @@ class Pipeline:
             # Ensure that sighting dates follow the same format.
             self.format_observation_dates()
 
-            # Generate country column from sighting coordinates
-            # self.coordinate_to_country_rate_limited()
-
             # Generate local observation times
             self.generate_local_times()
 
