@@ -51,6 +51,9 @@ class Pipeline:
         self.start_time = datetime.now()
 
     def activate_flow(self):
+        """ Method details and executes the flow of the cleaning pipeline.
+
+        """
         # Aggregate all observation files
         self.aggregate_observations()
 
