@@ -207,7 +207,7 @@ class Pipeline:
         """
         # Set up the geolocation library
         geolocator = Nominatim(user_agent="Spatio_Tempt_Class")
-        geocode = RateLimiter(geolocator.reverse, min_delay_seconds=1)
+        geocode = RateLimiter(geolocator.reverse, min_delay_seconds=2)
 
         # Combine lat and long into coordinates
         latitudes = pd.Series(self.df.latitude.values.astype(str))
