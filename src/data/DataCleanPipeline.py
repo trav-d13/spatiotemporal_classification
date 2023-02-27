@@ -129,8 +129,18 @@ class Pipeline:
             print("*********** No further correctly format to process ***********")
             sys.exit()
 
-    #TODO Write batching documentation
     def batching(self) -> bool:
+        """ This method creates observation batches from the aggregate observations in order to iteratively process and clean
+        data.
+
+        This method processes each batch, iteratively writing to interim_data.csv.
+        The DataFrame df_whole contains aggregate observations, while df contains the current batch.
+        Each batch once generated is removed from df_whole until this dataframe is empty, concluding the batching process.
+
+        Returns:
+            Method returns a boolean value. True if there are still observations to be batched and processes. False if df_whole is empty
+            indicating the batching process has concluded.
+        """
         rows_remaining = len(self.df_whole.index)
         if not self.TEST: self.percentage(rows_remaining)
 
