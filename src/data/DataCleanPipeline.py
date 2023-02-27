@@ -14,24 +14,22 @@ class Pipeline:
     """ Pipeline to clean raw data into interim data source.
 
     Args:
-        df_whole DataFrame: Contains all aggregated observations
-        df DataFrame: Dataframe containing the current batch of observations
-        datasets list: A list of individual observation csv files to be aggregated as raw data
-        resource_path str: Path to raw data resources, from project root directory
-        write_path str: Path to interim data resources, from project root directory
-        interim_exists bool: A flag representing if an existing interim_data.csv file exists in the project.
-        row_sum int: Contains the sum of aggregate observations. Value only initialized after dataset aggregation.
-        start_time DateTime: Records the start time of pipeline processing
-        TEST bool: A flag indicating values should be initialized for testing purposes.
-        test_df DataFrame: A direct dataframe insert for pipeline testing purposes
-
-    Params:
-        interim_file string: Specification of the file to write data to after cleaning process.
-        batch_size int: Size of individual batches that aggregate observations are broken down into.
+        df_whole (DataFrame): Contains all aggregated observations
+        df (DataFrame): Dataframe containing the current batch of observations
+        datasets (list): A list of individual observation csv files to be aggregated as raw data
+        resource_path (str): Path to raw data resources, from project root directory
+        write_path (str): Path to interim data resources, from project root directory
+        interim_exists (bool): A flag representing if an existing interim_data.csv file exists in the project.
+        row_sum (int): Contains the sum of aggregate observations. Value only initialized after dataset aggregation.
+        start_time (DateTime): Records the start time of pipeline processing
+        TEST (bool): A flag indicating values should be initialized for testing purposes.
+        test_df (DataFrame): A direct dataframe insert for pipeline testing purposes
     """
 
     interim_file = "interim_observations.csv"
+    """string: Specification of the file to write data to after cleaning process."""
     batch_size = 1000
+    """int: Size of individual batches that aggregate observations are broken down into."""
 
     def __init__(self, datasets=['observations_sample.csv'], test_df=None):
         if test_df is None:
@@ -108,7 +106,7 @@ class Pipeline:
         current cleaning proces.
 
         Args:
-            test_interim_df DataFrame: This dataframe is None during Pipeline cleaning process, however it allows for the creation
+            test_interim_df (DataFrame): This dataframe is None during Pipeline cleaning process, however it allows for the creation
             of an interim dataframe for testing purposes (Not running the entire pipeline.
         """
         self.df_whole.set_index('id', inplace=True)
@@ -173,7 +171,7 @@ class Pipeline:
         Method inspiration: Inspiration: https://www.geeksforgeeks.org/progress-bars-in-python/
 
         Args:
-            rows_remaining int: The number of rows remaining to be processed in the df_whole DataFrame.
+            rows_remaining (int): The number of rows remaining to be processed in the df_whole DataFrame.
         """
         progress_bar_length = 100
         percentage_complete = (self.row_sum - rows_remaining) / self.row_sum
@@ -248,6 +246,7 @@ class Pipeline:
             lambda x: finder.timezone_at(lat=x['latitude'], lng=x['longitude']), axis=1)
 
     def remove_peripheral_columns(self):
+        """ Method removes all peripheral columns before writing dataframe to interim_data.csv"""
         self.df = self.df[['observed_on', 'local_time_observed_at', 'latitude', 'longitude',
                            'positional_accuracy', 'public_positional_accuracy', 'image_url', 'license', 'geoprivacy',
                            'taxon_geoprivacy', 'scientific_name', 'common_name', 'taxon_id']]
