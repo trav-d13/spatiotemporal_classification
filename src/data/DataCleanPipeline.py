@@ -179,10 +179,9 @@ class Pipeline:
                 self.df.to_csv(self.write_path + self.interim_file, mode='w', index=True, header=True)
 
 
-
 if __name__ == "__main__":
     # Create Pipeline object
-    pipeline = Pipeline()
+    pipeline = Pipeline(datasets=['observations_1.csv'])
 
     # Activate pipeline flow
     pipeline.activate_flow()
