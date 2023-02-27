@@ -25,7 +25,7 @@ class Pipeline:
     """
 
     interim_file = "interim_observations.csv"
-    batch_size = 5
+    batch_size = 100
 
     def __init__(self, datasets=['observations_sample.csv'], test_df=None):
         if test_df is None:
