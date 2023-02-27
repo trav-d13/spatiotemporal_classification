@@ -88,8 +88,19 @@ class Pipeline:
         """
         self.df_whole.drop_duplicates(subset=['id'], keep='first', inplace=True)
 
-    #TODO Write continuation documentation
     def continuation(self, test_interim_df=None):
+        """ Method determines the status of the Data Cleaning Pipeline, enabling continuation without redundancies if
+        the cleaning process is interrupted.
+
+        This method enables testing through the test_interim_df dataframe that can be passed to it.
+        However, within the pipeline this is automated, and no parameter is required.
+        Method accesses the interim_data.csv file, and identifies already processes observations, removing them from the
+        current cleaning proces.
+
+        Args:
+            test_interim_df DataFrame: This dataframe is None during Pipeline cleaning process, however it allows for the creation
+            of an interim dataframe for testing purposes (Not running the entire pipeline.
+        """
         self.df_whole.set_index('id', inplace=True)
 
         interim_df = pd.DataFrame()
