@@ -25,18 +25,24 @@ class Pipeline:
     """
 
     interim_file = "interim_observations.csv"
+    batch_size = 5
 
     def __init__(self, datasets=['observations_sample.csv'], test_df=None):
         if test_df is None:
+            self.df_whole = pd.DataFrame()
             self.df = pd.DataFrame()
             self.datasets = datasets
             self.resource_path = root_dir() + "/data/raw/"
             self.write_path = root_dir() + "/data/interim/"
             self.interim_exists = os.path.isfile(self.write_path + self.interim_file)
+            self.row_sum = 0
             self.TEST = False
         else:
-            self.df = test_df.copy(deep=True)
+            self.df_whole = test_df.copy(deep=True)
             self.TEST = True
+            self.row_sum = len(self.df_whole.index)
+
+
 
     def activate_flow(self):
         # Aggregate all observation files
@@ -51,20 +57,22 @@ class Pipeline:
         # Remove any NaN types from columns undergoing computation
         self.remove_na_working_columns()
 
-        # Ensure that sighting dates follow the same format.
-        self.format_observation_dates()
+        # Batching loop
+        while self.batching():
+            # Ensure that sighting dates follow the same format.
+            self.format_observation_dates()
 
-        # Generate country column from sighting coordinates
-        self.coordinate_to_country()
+            # Generate country column from sighting coordinates
+            self.coordinate_to_country()
 
-        # Generate local observation times
-        self.generate_local_times()
+            # Generate local observation times
+            self.generate_local_times()
 
-        # Remove peripheral columns
-        self.remove_peripheral_columns()
+            # Remove peripheral columns
+            self.remove_peripheral_columns()
 
-        # Write to interim data
-        self.write_interim_data()
+            # Write to interim data
+            self.write_interim_data()
 
     def aggregate_observations(self):
         """Method aggregates all observations from separate files, placing them within a df for manipulation
@@ -75,17 +83,17 @@ class Pipeline:
         if not self.TEST:
             for dataset in self.datasets:
                 df_temp = pd.read_csv(self.resource_path + dataset)
-                self.df = pd.concat([self.df, df_temp])
+                self.df_whole = pd.concat([self.df_whole, df_temp])
 
     def enforce_unique_ids(self):
         """Removal of any duplicate observations utilizing their observation id
 
         In place duplicate removal such that changes are effected directly within df
         """
-        self.df.drop_duplicates(subset=['id'], keep='first', inplace=True)
+        self.df_whole.drop_duplicates(subset=['id'], keep='first', inplace=True)
 
     def continuation(self, test_interim_df=None):
-        self.df.set_index('id', inplace=True)
+        self.df_whole.set_index('id', inplace=True)
 
         interim_df = pd.DataFrame()
 
@@ -96,13 +104,43 @@ class Pipeline:
 
         if not interim_df.empty:
             interim_df.set_index('id', inplace=True)
-            self.df = self.df.loc[self.df.index.difference(interim_df.index), ]
+            self.df_whole = self.df_whole.loc[self.df_whole.index.difference(interim_df.index), ]
+
+        self.row_sum = len(self.df_whole.index)
 
     def remove_na_working_columns(self):
-        self.df.dropna(subset=['observed_on', 'latitude', 'longitude', 'time_observed_at', 'time_zone'], inplace=True)
-        if self.df.empty:
+        self.df_whole.dropna(subset=['observed_on', 'latitude', 'longitude', 'time_observed_at', 'time_zone'], inplace=True)
+        if self.df_whole.empty:
             print("*********** No further correctly format to process ***********")
             sys.exit()
+
+    def batching(self) -> bool:
+        rows_remaining = len(self.df_whole.index)
+        if not self.TEST: self.percentage(rows_remaining)
+
+        if self.df_whole.empty:
+            return False
+
+        if rows_remaining > self.batch_size:
+            self.df = self.df_whole.iloc[0:self.batch_size]
+            self.df_whole = self.df_whole.iloc[self.batch_size:]
+            return True
+        else:
+            self.df = self.df_whole
+            self.df_whole = pd.DataFrame()
+            return True
+
+    # Inspiration: https://www.geeksforgeeks.org/progress-bars-in-python/
+    def percentage(self, rows_remaining):
+        progress_bar_length = 100
+        percentage_complete = (self.row_sum - rows_remaining) / self.row_sum
+        filled = int(progress_bar_length * percentage_complete)
+
+        bar = '=' * filled + '-' * (progress_bar_length - filled)
+        percentage_display = round(100 * percentage_complete, 1)
+        # print('[%s] %s%s ...%s\r' % (bar, percentage_display, '%', ''))
+        sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percentage_display, '%', ''))
+        sys.stdout.flush()
 
     def format_observation_dates(self):
         """ Method ensures that raw data dates follow format yyyy-mm-dd. If the dates deviate they are removed from the dataframe.

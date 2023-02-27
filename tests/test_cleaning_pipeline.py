@@ -29,9 +29,16 @@ test_df = pd.DataFrame(test_data, columns=raw_data_columns)
 
 
 class TestCleaningPipeline(unittest.TestCase):
+    def setup(self):
+        pipeline = Pipeline(test_df=test_df)
+        pipeline.batch_size = 10
+        pipeline.batching()
+        return pipeline
+
     def test_unique_id(self):
         # Pipeline
-        pipeline = Pipeline(test_df=test_df)
+        pipeline = self.setup()
+
         pipeline.enforce_unique_ids()
         resulting_ids = pipeline.df['id'].tolist()
 
@@ -55,7 +62,7 @@ class TestCleaningPipeline(unittest.TestCase):
         pipeline = Pipeline(test_df=test_df)
         pipeline.enforce_unique_ids()
         pipeline.continuation(test_interim_df=test_interim_df)
-        indices_to_continue = pipeline.df.index.to_list()
+        indices_to_continue = pipeline.df_whole.index.to_list()
 
         # Testing
         correct_indices = [129051266, 129054418, 129076855, 129107609, 129120635]
@@ -63,7 +70,7 @@ class TestCleaningPipeline(unittest.TestCase):
 
     def test_date_formatting(self):
         # Pipeline
-        pipeline = Pipeline(test_df=test_df)
+        pipeline = self.setup()
         pipeline.format_observation_dates()
         resulting_formatted_dates = pipeline.df['observed_on'].tolist()
 
@@ -74,7 +81,7 @@ class TestCleaningPipeline(unittest.TestCase):
 
     def test_coordinate_to_country(self):
         # Pipeline
-        pipeline = Pipeline(test_df=test_df)
+        pipeline = self.setup()
         pipeline.coordinate_to_country()
         countries = pipeline.df['country'].values
 
@@ -89,7 +96,7 @@ class TestCleaningPipeline(unittest.TestCase):
 
     def test_timezone_standardization(self):
         # Pipeline
-        pipeline = Pipeline(test_df=test_df)
+        pipeline = self.setup()
         pipeline.standardize_timezones()
         timezones = pipeline.df['time_zone'].values
 
@@ -104,7 +111,7 @@ class TestCleaningPipeline(unittest.TestCase):
 
     def test_local_times(self):
         # Pipeline
-        pipeline = Pipeline(test_df=test_df)
+        pipeline = self.setup()
         pipeline.generate_local_times()
         local_times = pipeline.df['local_time_observed_at'].tolist()
 
