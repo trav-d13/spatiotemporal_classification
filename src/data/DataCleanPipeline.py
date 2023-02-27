@@ -116,8 +116,13 @@ class Pipeline:
 
         self.row_sum = len(self.df_whole.index)
 
-    #TODO Write remove_na documentation
     def remove_na_working_columns(self):
+        """ This method removes all rows with NaN values, specifically located within columns used for computation that require
+        values.
+
+         The 'working columns' include date, time, time zone, and coordinates.
+         If the removal creates an empty dataframe, the method exists execution, displaying an exit message.
+        """
         self.df_whole.dropna(subset=['observed_on', 'latitude', 'longitude', 'time_observed_at', 'time_zone'],
                              inplace=True)
         if self.df_whole.empty:
