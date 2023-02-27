@@ -1,18 +1,12 @@
 import pandas as pd
 import os
 import sys
-
 from timezonefinder import TimezoneFinder
-
 import pytz
-
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
-
 from functools import partial
-
 from Config import root_dir
-
 from datetime import datetime
 
 
@@ -94,6 +88,7 @@ class Pipeline:
         """
         self.df_whole.drop_duplicates(subset=['id'], keep='first', inplace=True)
 
+    #TODO Write continuation documentation
     def continuation(self, test_interim_df=None):
         self.df_whole.set_index('id', inplace=True)
 
@@ -110,6 +105,7 @@ class Pipeline:
 
         self.row_sum = len(self.df_whole.index)
 
+    #TODO Write remove_na documentation
     def remove_na_working_columns(self):
         self.df_whole.dropna(subset=['observed_on', 'latitude', 'longitude', 'time_observed_at', 'time_zone'],
                              inplace=True)
@@ -117,6 +113,7 @@ class Pipeline:
             print("*********** No further correctly format to process ***********")
             sys.exit()
 
+    #TODO Write batching documentation
     def batching(self) -> bool:
         rows_remaining = len(self.df_whole.index)
         if not self.TEST: self.percentage(rows_remaining)
@@ -133,6 +130,7 @@ class Pipeline:
             self.df_whole = pd.DataFrame()
             return True
 
+    #TODO Write percentage documentation
     # Inspiration: https://www.geeksforgeeks.org/progress-bars-in-python/
     def percentage(self, rows_remaining):
         progress_bar_length = 100
