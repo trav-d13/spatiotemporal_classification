@@ -14,10 +14,20 @@ class Pipeline:
     """ Pipeline to clean raw data into interim data source.
 
     Args:
-        df DataFrame: Dataframe tp hold aggregated raw data
+        df_whole DataFrame: Contains all aggregated observations
+        df DataFrame: Dataframe containing the current batch of observations
         datasets list: A list of individual observation csv files to be aggregated as raw data
         resource_path str: Path to raw data resources, from project root directory
+        write_path str: Path to interim data resources, from project root directory
+        interim_exists bool: A flag representing if an existing interim_data.csv file exists in the project.
+        row_sum int: Contains the sum of aggregate observations. Value only initialized after dataset aggregation.
+        start_time DateTime: Records the start time of pipeline processing
+        TEST bool: A flag indicating values should be initialized for testing purposes.
         test_df DataFrame: A direct dataframe insert for pipeline testing purposes
+
+    Params:
+        interim_file string: Specification of the file to write data to after cleaning process.
+        batch_size int: Size of individual batches that aggregate observations are broken down into.
     """
 
     interim_file = "interim_observations.csv"
