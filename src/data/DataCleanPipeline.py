@@ -156,9 +156,15 @@ class Pipeline:
             self.df_whole = pd.DataFrame()
             return True
 
-    #TODO Write percentage documentation
-    # Inspiration: https://www.geeksforgeeks.org/progress-bars-in-python/
     def percentage(self, rows_remaining):
+        """ Method generates and updates a status bar based on the progress of batching.
+
+            Both percentage complete and running time metrics are displayed
+            Method inspiration: Inspiration: https://www.geeksforgeeks.org/progress-bars-in-python/
+
+            Args:
+                rows_remaining int: The number of rows remaining to be processed in the df_whole DataFrame.
+        """
         progress_bar_length = 100
         percentage_complete = (self.row_sum - rows_remaining) / self.row_sum
         filled = int(progress_bar_length * percentage_complete)
