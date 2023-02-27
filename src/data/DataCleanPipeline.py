@@ -263,7 +263,7 @@ class Pipeline:
 
 if __name__ == "__main__":
     # Create Pipeline object
-    pipeline = Pipeline(datasets=['observations_1.csv'])
+    pipeline = Pipeline()
 
     # Activate pipeline flow
     pipeline.activate_flow()
