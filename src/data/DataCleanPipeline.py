@@ -159,11 +159,11 @@ class Pipeline:
     def percentage(self, rows_remaining):
         """ Method generates and updates a status bar based on the progress of batching.
 
-            Both percentage complete and running time metrics are displayed
-            Method inspiration: Inspiration: https://www.geeksforgeeks.org/progress-bars-in-python/
+        Both percentage complete and running time metrics are displayed
+        Method inspiration: Inspiration: https://www.geeksforgeeks.org/progress-bars-in-python/
 
-            Args:
-                rows_remaining int: The number of rows remaining to be processed in the df_whole DataFrame.
+        Args:
+            rows_remaining int: The number of rows remaining to be processed in the df_whole DataFrame.
         """
         progress_bar_length = 100
         percentage_complete = (self.row_sum - rows_remaining) / self.row_sum
@@ -189,12 +189,11 @@ class Pipeline:
                                                 exact=True).astype(str)
         self.df.query('observed_on != "NaT"', inplace=True)
 
-    # TODO Move into interim processing due to extreme time due to rate limiting
-    # TODO Update documentation (explicitly rate limited)
     def coordinate_to_country_rate_limited(self):
         """ Method takes data coordinates, and identifies the country of origin, creating a Country column within Interim data
 
-        The Geopy library is utilized, with rate limiting (1 sec) in order to not tax the API.
+        The Nomanitim geocoding API is utilized.
+        Due to rate limiting of 1 request per second, a rate limiter has been introduced in order to respect the limits.
         """
         # Set up the geolocation library
         geolocator = Nominatim(user_agent="Spatio_Tempt_Class")
@@ -207,20 +206,6 @@ class Pipeline:
 
         # Retrieve countries from coordinates (rate limiting requests)
         locations = coordinates.apply(partial(geocode, language='en', exactly_one=True))
-        self.df['country'] = locations.apply(lambda x: x.raw['address']['country']).values
-
-    # TODO Document method (not rate limited)
-    def coordinate_to_country(self):
-        # Set up the geolocation library
-        geolocator = Nominatim(user_agent="Spatio_Tempt_Class")
-
-        # Combine lat and long into coordinates
-        latitudes = pd.Series(self.df.latitude.values.astype(str))
-        longitudes = pd.Series(self.df.longitude.values.astype(str))
-        coordinates = latitudes + ', ' + longitudes
-
-        # Retrieve countries from coordinates (rate limiting requests)
-        locations = coordinates.apply(partial(geolocator.reverse, language='en', exactly_one=True))
         self.df['country'] = locations.apply(lambda x: x.raw['address']['country']).values
 
     def generate_local_times(self):
