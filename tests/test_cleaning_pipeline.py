@@ -70,14 +70,18 @@ class TestCleaningPipeline(unittest.TestCase):
                         [38197744, '2020-02-02', -38.1974245434, 145.4793232007, '2020-02-01 23:04:35 UTC', 'Asia/Magadan']]
         test_interim_df = pd.DataFrame(interim_data, columns=interim_data_columns)
 
+        bad_quality_columns = ['id', 'image_url', 'image_quality']
+        bad_quality_data = [[129051266, 'https://inaturalist-open-data.s3.amazonaws.com/photos/60672001/medium.jpg', 'bad']]
+        test_bad_quality_df = pd.DataFrame(bad_quality_data, columns=bad_quality_columns)
+
         # Pipeline
         pipeline = Pipeline(test_df=test_df)
         pipeline.enforce_unique_ids()
-        pipeline.continuation(test_interim_df=test_interim_df)
+        pipeline.continuation(test_interim_df=test_interim_df, test_bad_df=test_bad_quality_df)
         indices_to_continue = pipeline.df_whole.index.to_list()
 
         # Testing
-        correct_indices = [129051266, 129054418, 129076855, 129107609, 129120635]
+        correct_indices = [129054418, 129076855, 129107609, 129120635]
         self.assertTrue(indices_to_continue.sort() == correct_indices.sort())
 
     def test_date_formatting(self):

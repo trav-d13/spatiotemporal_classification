@@ -28,6 +28,7 @@ class Pipeline:
 
     interim_file = "interim_observations.csv"
     """string: Specification of the file to write data to after cleaning process."""
+    bad_file = 'bad_quality.csv'
     batch_size = 1000
     """int: Size of individual batches that aggregate observations are broken down into."""
 
@@ -99,7 +100,7 @@ class Pipeline:
         """
         self.df_whole.drop_duplicates(subset=['id'], keep='first', inplace=True)
 
-    def continuation(self, test_interim_df=None):
+    def continuation(self, test_interim_df=None, test_bad_df=None):
         """ Method determines the status of the Data Cleaning Pipeline, enabling continuation without redundancies if
         the cleaning process is interrupted.
 
@@ -115,15 +116,20 @@ class Pipeline:
         self.df_whole.set_index('id', inplace=True)
 
         interim_df = pd.DataFrame()
+        bad_quality_df = pd.DataFrame()
 
         if self.TEST and test_interim_df is not None:
             interim_df = pd.concat([interim_df, test_interim_df])
+            bad_quality_df = pd.concat([bad_quality_df, test_bad_df])
         elif not self.TEST and self.interim_exists:
             interim_df = pd.read_csv(self.write_path + self.interim_file)
+            bad_quality_df = pd.read_csv(self.write_path + self.bad_file)
 
         if not interim_df.empty:
             interim_df.set_index('id', inplace=True)
+            bad_quality_df.set_index('id', inplace=True)
             self.df_whole = self.df_whole.loc[self.df_whole.index.difference(interim_df.index),]
+            self.df_whole = self.df_whole.loc[self.df_whole.index.difference(bad_quality_df.index),]
 
         self.row_sum = len(self.df_whole.index)
 
@@ -279,12 +285,11 @@ class Pipeline:
         return bad_df
 
     def write_bad_data(self, df):
-        file_name = 'data_quality.csv'
-        bad_data_exists = os.path.isfile(self.write_path + file_name)
+        bad_data_exists = os.path.isfile(self.write_path + self.bad_file)
         if bad_data_exists:
-            df.to_csv(self.write_path + file_name, mode='a', index=True, header=False)
+            df.to_csv(self.write_path + self.bad_file, mode='a', index=True, header=False)
         else:
-            df.to_csv(self.write_path + file_name, mode='w', index=True, header=True)
+            df.to_csv(self.write_path + self.bad_file, mode='w', index=True, header=True)
 
     def write_interim_data(self):
         """ Method writes current state of df into interim data folder in csv format"""
