@@ -4,7 +4,6 @@ import unittest
 from src.data.DataCleanPipeline import Pipeline
 
 # Test data retrieved from observations_1.csv and observations_6 (modified to include errors here)
-# TODO Finish writing full test data
 test_data = [
     [128984633, '2022-08-02', -30.4900714453, 151.6392706226, '2022-08-01 14:40:00 UTC', 'Sydney', 'research', '',
      'https://www.inaturalist.org/observations/128984633',
@@ -23,7 +22,7 @@ test_data = [
     [129076855, '2022-08-02', -40.9498116654, 174.9710916171, '2022-08-02 01:32:23 UTC', 'Wellington', 'research', '',
      'https://www.inaturalist.org/observations/129076855',
      'https://inaturalist-open-data.s3.amazonaws.com/photos/219311061/medium.jpg',
-     '', 5, 5, '', 'open', 'Arctocephalus forsteri', 'New Zealand Fur Seal', 41752],
+     'Really bad picture but there’s one in there ', 5, 5, '', 'open', 'Arctocephalus forsteri', 'New Zealand Fur Seal', 41752],
     [129107609, '202g-08-02', 43.952764223, -110.6115040714, '2022-08-02 07:14:59 UTC', 'Mountain Time (US & Canada)',
      'research', 'CC-BY-NC', 'https://www.inaturalist.org/observations/129107609', 'https://inaturalist-open-data.s3.amazonaws.com/photos/219366763/medium.jpg',
      '', 11690, 27411, '', 'obscured', 'Ovis canadensis', 'Bighorn Sheep', '42391'],
@@ -32,7 +31,7 @@ test_data = [
      '', 4, 4, '', '', 'Madoqua damarensis', 'Damara Dik-dik', 1430934],
     [38197744, '2020-02-02', -38.1974245434, 145.4793232007, '2020-02-01 23:04:35 UTC', 'Asia/Magadan', 'research', 'CC-BY-NC',
      'https://www.inaturalist.org/observations/38197744', 'https://inaturalist-open-data.s3.amazonaws.com/photos/60672001/medium.jpg',
-     '', 22, 22, '', 'open', 'Pseudocheirus peregrinus', 'Common Ringtail Possum', 42775]]
+     'Caught in pitfall trap, guided by drift fence. Field techniques', 22, 22, '', 'open', 'Pseudocheirus peregrinus', 'Common Ringtail Possum', 42775]]
 
 raw_data_columns = ['id', 'observed_on', 'latitude', 'longitude', 'time_observed_at', 'time_zone', 'quality_grade',
                     'license', 'url', 'image_url', 'description', 'positional_accuracy', 'public_positional_accuracy',
@@ -135,6 +134,19 @@ class TestCleaningPipeline(unittest.TestCase):
                          '2022-08-02 13:32:23+12:00', '2022-08-02 01:14:59-06:00',
                          '2022-08-02 10:11:57+02:00', '2020-02-02 10:04:35+11:00']
         self.assertTrue(set(local_times) == set(correct_times))
+
+    def test_bad_observation_identification(self):
+        # Pipeline
+        pipeline = self.setup()
+        bad_df = pipeline.identify_bad_observations()
+        resulting_bad_indices = bad_df.index.values
+        resulting_good_indices = pipeline.df.index.values
+
+        # Testing
+        correct_bad_indices = [38197744, 129076855]
+        correct_good_indices = [128984633, 129051266, 129054418, 129076855, 129107609, 129120635]
+        self.assertTrue(resulting_bad_indices.sort() == correct_bad_indices.sort())
+        self.assertTrue(resulting_good_indices.sort() == correct_good_indices.sort())
 
     def test_peripheral_column_removal(self):
         # Pipeline

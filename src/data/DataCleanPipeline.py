@@ -66,6 +66,9 @@ class Pipeline:
 
         # Batching loop
         while self.batching():
+            # Detect bad quality observations from batch
+            self.bad_data_separation()
+
             # Ensure that sighting dates follow the same format.
             self.format_observation_dates()
 
@@ -180,7 +183,7 @@ class Pipeline:
 
         bar = '=' * filled + '-' * (progress_bar_length - filled)
         percentage_display = round(100 * percentage_complete, 1)
-        sys.stdout.write('\r[%s] %s%s ... running: %s' %(bar, percentage_display, '%', running_time))
+        sys.stdout.write('\r[%s] %s%s ... running: %s' % (bar, percentage_display, '%', running_time))
         sys.stdout.flush()
 
     def format_observation_dates(self):
@@ -245,11 +248,43 @@ class Pipeline:
         self.df['time_zone'] = self.df.apply(
             lambda x: finder.timezone_at(lat=x['latitude'], lng=x['longitude']), axis=1)
 
+    def bad_data_separation(self):
+        bad_df = self.identify_bad_observations()
+        bad_df = self.format_bad_data(bad_df)
+        if not self.TEST:
+            self.write_bad_data(bad_df)
+
+    def identify_bad_observations(self):
+        description_indicators = ['dead', 'road kill', 'road', 'scat', 'poo', 'killed', 'spoor', 'road-kill', 'remains',
+                                  'body', 'deceased', 'prey', 'fatality', 'tracks', 'trapped', 'bad', 'roadkilled', 'poop',
+                                  'crushed', 'kill', 'squashed', 'terrible', 'caught', 'pool', 'blurry', 'destroyed',
+                                  'sidewalk',
+                                  'grounded']
+        regex_pattern = '|'.join([f'{key_word}' for key_word in description_indicators])
+        filter = self.df.description.str.contains(regex_pattern, case=False, regex=True)
+        filter.fillna(False, inplace=True)
+        bad_df = self.df[filter]
+        self.df = self.df[~filter]
+        bad_df['image_quality'] = 'bad'
+        return bad_df
+
     def remove_peripheral_columns(self):
         """ Method removes all peripheral columns before writing dataframe to interim_data.csv"""
         self.df = self.df[['observed_on', 'local_time_observed_at', 'latitude', 'longitude',
                            'positional_accuracy', 'public_positional_accuracy', 'image_url', 'license', 'geoprivacy',
                            'taxon_geoprivacy', 'scientific_name', 'common_name', 'taxon_id']]
+
+    def format_bad_data(self, bad_df):
+        bad_df = bad_df[['image_url', 'image_quality']]
+        return bad_df
+
+    def write_bad_data(self, df):
+        file_name = 'data_quality.csv'
+        bad_data_exists = os.path.isfile(self.write_path + file_name)
+        if bad_data_exists:
+            df.to_csv(self.write_path + file_name, mode='a', index=True, header=False)
+        else:
+            df.to_csv(self.write_path + file_name, mode='w', index=True, header=True)
 
     def write_interim_data(self):
         """ Method writes current state of df into interim data folder in csv format"""
