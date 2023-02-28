@@ -257,8 +257,7 @@ class Pipeline:
     def bad_data_separation(self):
         bad_df = self.identify_bad_observations()
         bad_df = self.format_bad_data(bad_df)
-        if not self.TEST:
-            self.write_bad_data(bad_df)
+        self.write_bad_data(bad_df)
 
     def identify_bad_observations(self):
         description_indicators = ['dead', 'road kill', 'road', 'scat', 'poo', 'killed', 'spoor', 'road-kill', 'remains',
@@ -284,16 +283,18 @@ class Pipeline:
         bad_df = bad_df[['image_url', 'image_quality']]
         return bad_df
 
-    def write_bad_data(self, df):
-        bad_data_exists = os.path.isfile(self.write_path + self.bad_file)
-        if bad_data_exists:
-            df.to_csv(self.write_path + self.bad_file, mode='a', index=True, header=False)
-        else:
-            df.to_csv(self.write_path + self.bad_file, mode='w', index=True, header=True)
+    def write_bad_data(self, bad_df):
+        if not self.TEST:
+            bad_data_exists = os.path.isfile(self.write_path + self.bad_file)
+            if bad_data_exists:
+                bad_df.to_csv(self.write_path + self.bad_file, mode='a', index=True, header=False)
+            else:
+                bad_df.to_csv(self.write_path + self.bad_file, mode='w', index=True, header=True)
 
     def write_interim_data(self):
         """ Method writes current state of df into interim data folder in csv format"""
         if not self.TEST:
+            self.interim_exists = os.path.isfile(self.write_path + self.interim_file)
             if self.interim_exists:
                 self.df.to_csv(self.write_path + self.interim_file, mode='a', index=True, header=False)
             else:
@@ -302,7 +303,7 @@ class Pipeline:
 
 if __name__ == "__main__":
     # Create Pipeline object
-    pipeline = Pipeline()
+    pipeline = Pipeline(datasets=['observations_1.csv'])
 
     # Activate pipeline flow
     pipeline.activate_flow()
