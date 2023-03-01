@@ -266,10 +266,10 @@ class Pipeline:
                                   'grounded']
         regex_pattern = '|'.join([f'{key_word}' for key_word in description_indicators])
         filter = self.df.description.str.contains(regex_pattern, case=False, regex=True)  # Filter descriptions to identify keywords
-        filter.fillna(False, inplace=True)
-        bad_df = self.df[filter]
-        self.df = self.df[~filter]
-        bad_df['image_quality'] = 'bad'
+        filter.fillna(False, inplace=True)  # Boolean filter
+        bad_df = self.df[filter]  # Filter to produce bad_obs df
+        self.df = self.df[~filter]  # Filter to remove bad_obs from df
+        bad_df['image_quality'] = 'bad'  # Label bad data image quality
         return bad_df
 
     def remove_peripheral_columns(self):
