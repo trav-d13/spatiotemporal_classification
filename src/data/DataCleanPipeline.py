@@ -28,6 +28,7 @@ class Pipeline:
 
     interim_file = "interim_observations.csv"
     """string: Specification of the file to write data to after cleaning process."""
+    bad_file = 'bad_quality.csv'
     batch_size = 1000
     """int: Size of individual batches that aggregate observations are broken down into."""
 
@@ -39,6 +40,7 @@ class Pipeline:
             self.resource_path = root_dir() + "/data/raw/"
             self.write_path = root_dir() + "/data/interim/"
             self.interim_exists = os.path.isfile(self.write_path + self.interim_file)
+            self.bad_data_exists = os.path.isfile(self.write_path + self.bad_file)
             self.row_sum = 0
             self.TEST = False
         else:
@@ -49,34 +51,26 @@ class Pipeline:
         self.start_time = datetime.now()
 
     def activate_flow(self):
-        """ Method details and executes the flow of the cleaning pipeline.
+        """ Method details and executes the flow of the cleaning pipeline"""
 
-        """
-        # Aggregate all observation files
-        self.aggregate_observations()
+        self.aggregate_observations()  # Aggregate all observation files
 
-        # Ensure that no sighting duplicates are within the aggregate set
-        self.enforce_unique_ids()
+        self.enforce_unique_ids()  # No duplicate observations
 
-        # Continuation from interrupt/ start from scratch
-        self.continuation()
+        self.continuation()  # Continuation from interrupt/ start from scratch
 
-        # Remove any NaN types from columns undergoing computation
-        self.remove_na_working_columns()
+        self.remove_na_working_columns()  # Remove any NaN types from columns undergoing computation
 
-        # Batching loop
-        while self.batching():
-            # Ensure that sighting dates follow the same format.
-            self.format_observation_dates()
+        while self.batching():  # Batching loop
+            self.bad_data_separation()  # Detect bad quality observations from batch
 
-            # Generate local observation times
-            self.generate_local_times()
+            self.format_observation_dates()  # Format sighting dates
 
-            # Remove peripheral columns
-            self.remove_peripheral_columns()
+            self.generate_local_times()  # Generate local observation times
 
-            # Write to interim data
-            self.write_interim_data()
+            self.remove_peripheral_columns()  # Remove peripheral columns
+
+            self.write_interim_data()  # Write to interim data
 
     def aggregate_observations(self):
         """Method aggregates all observations from separate files, placing them within a df for manipulation
@@ -87,7 +81,7 @@ class Pipeline:
         if not self.TEST:
             for dataset in self.datasets:
                 df_temp = pd.read_csv(self.resource_path + dataset)
-                self.df_whole = pd.concat([self.df_whole, df_temp])
+                self.df_whole = pd.concat([self.df_whole, df_temp])  # Merge temp df into container df
 
     def enforce_unique_ids(self):
         """Removal of any duplicate observations utilizing their observation id
@@ -96,7 +90,7 @@ class Pipeline:
         """
         self.df_whole.drop_duplicates(subset=['id'], keep='first', inplace=True)
 
-    def continuation(self, test_interim_df=None):
+    def continuation(self, test_interim_df=None, test_bad_df=None):
         """ Method determines the status of the Data Cleaning Pipeline, enabling continuation without redundancies if
         the cleaning process is interrupted.
 
@@ -112,15 +106,24 @@ class Pipeline:
         self.df_whole.set_index('id', inplace=True)
 
         interim_df = pd.DataFrame()
+        bad_quality_df = pd.DataFrame()
 
-        if self.TEST and test_interim_df is not None:
+        if self.TEST and test_interim_df is not None:  # Conditions for test cases
             interim_df = pd.concat([interim_df, test_interim_df])
-        elif not self.TEST and self.interim_exists:
-            interim_df = pd.read_csv(self.write_path + self.interim_file)
+            bad_quality_df = pd.concat([bad_quality_df, test_bad_df])
 
-        if not interim_df.empty:
+        if not self.TEST and self.interim_exists:  # Non-test conditions when interim data file exists
+            interim_df = pd.read_csv(self.write_path + self.interim_file)
+        if not self.TEST and self.bad_data_exists:  # Non-test conditions when bad_quality data file exists
+            bad_quality_df = pd.read_csv(self.write_path + self.bad_file)
+
+        if not interim_df.empty:  # Removal of duplicate rows already written to interim data
             interim_df.set_index('id', inplace=True)
-            self.df_whole = self.df_whole.loc[self.df_whole.index.difference(interim_df.index),]
+            self.df_whole = self.df_whole.loc[self.df_whole.index.difference(interim_df.index), ]
+
+        if not bad_quality_df.empty:  # Removal of duplicate rows already written to bad_quality data
+            bad_quality_df.set_index('id', inplace=True)
+            self.df_whole = self.df_whole.loc[self.df_whole.index.difference(bad_quality_df.index), ]
 
         self.row_sum = len(self.df_whole.index)
 
@@ -180,7 +183,7 @@ class Pipeline:
 
         bar = '=' * filled + '-' * (progress_bar_length - filled)
         percentage_display = round(100 * percentage_complete, 1)
-        sys.stdout.write('\r[%s] %s%s ... running: %s' %(bar, percentage_display, '%', running_time))
+        sys.stdout.write('\r[%s] %s%s ... running: %s' % (bar, percentage_display, '%', running_time))
         sys.stdout.flush()
 
     def format_observation_dates(self):
@@ -245,15 +248,66 @@ class Pipeline:
         self.df['time_zone'] = self.df.apply(
             lambda x: finder.timezone_at(lat=x['latitude'], lng=x['longitude']), axis=1)
 
+    def bad_data_separation(self):
+        """Method performs the sub-process of bad data separation, formatting, and writing to file"""
+        bad_df = self.identify_bad_observations()
+        bad_df = self.format_bad_data(bad_df)
+        self.write_bad_data(bad_df)
+
+    def identify_bad_observations(self):
+        """Method identifies probable bad quality images based on keyword extraction from the descriptions
+
+        Keyword pattern identification is accomplished through the use of regex pattern matching
+        """
+        description_indicators = ['dead', 'road kill', 'road', 'scat', 'poo', 'killed', 'spoor', 'road-kill', 'remains',
+                                  'body', 'deceased', 'prey', 'fatality', 'tracks', 'trapped', 'bad', 'roadkilled', 'poop',
+                                  'crushed', 'kill', 'squashed', 'terrible', 'caught', 'pool', 'blurry', 'destroyed',
+                                  'sidewalk',
+                                  'grounded']
+        regex_pattern = '|'.join([f'{key_word}' for key_word in description_indicators])
+        filter = self.df.description.str.contains(regex_pattern, case=False, regex=True)  # Filter descriptions to identify keywords
+        filter.fillna(False, inplace=True)  # Boolean filter
+        bad_df = self.df[filter]  # Filter to produce bad_obs df
+        self.df = self.df[~filter]  # Filter to remove bad_obs from df
+        bad_df['image_quality'] = 'bad'  # Label bad data image quality
+        return bad_df
+
     def remove_peripheral_columns(self):
         """ Method removes all peripheral columns before writing dataframe to interim_data.csv"""
         self.df = self.df[['observed_on', 'local_time_observed_at', 'latitude', 'longitude',
                            'positional_accuracy', 'public_positional_accuracy', 'image_url', 'license', 'geoprivacy',
                            'taxon_geoprivacy', 'scientific_name', 'common_name', 'taxon_id']]
 
+    def format_bad_data(self, bad_df):
+        """Method creates a sub-dataframe of only the image_url and the image quality (Index is observation ID)
+
+        This subset creates the format that the bad quality images will be written to bad_quality.csv
+
+        Args:
+            bad_df (DataFrame): DataFrame containing all bad observations filtered from df
+        """
+        bad_df = bad_df[['image_url', 'image_quality']]
+        return bad_df
+
+    def write_bad_data(self, bad_df):
+        """Method performs similar operation to the write_interim_data() method, in this case specifically writing bad data
+
+        This method should be refactored in conjunction with write_interim_data in order to minimize code repetition
+
+        Args:
+            bad_df (DataFrame): DataFrame containing the sub-dataframe of only id, image_url, and image_quality columns
+        """
+        if not self.TEST:
+            self.bad_data_exists = os.path.isfile(self.write_path + self.bad_file)
+            if self.bad_data_exists:
+                bad_df.to_csv(self.write_path + self.bad_file, mode='a', index=True, header=False)
+            else:
+                bad_df.to_csv(self.write_path + self.bad_file, mode='w', index=True, header=True)
+
     def write_interim_data(self):
         """ Method writes current state of df into interim data folder in csv format"""
         if not self.TEST:
+            self.interim_exists = os.path.isfile(self.write_path + self.interim_file)
             if self.interim_exists:
                 self.df.to_csv(self.write_path + self.interim_file, mode='a', index=True, header=False)
             else:
