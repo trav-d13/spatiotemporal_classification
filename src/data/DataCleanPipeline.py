@@ -40,6 +40,7 @@ class Pipeline:
             self.resource_path = root_dir() + "/data/raw/"
             self.write_path = root_dir() + "/data/interim/"
             self.interim_exists = os.path.isfile(self.write_path + self.interim_file)
+            self.bad_data_exists = os.path.isfile(self.write_path + self.bad_file)
             self.row_sum = 0
             self.TEST = False
         else:
@@ -50,37 +51,26 @@ class Pipeline:
         self.start_time = datetime.now()
 
     def activate_flow(self):
-        """ Method details and executes the flow of the cleaning pipeline.
+        """ Method details and executes the flow of the cleaning pipeline"""
 
-        """
-        # Aggregate all observation files
-        self.aggregate_observations()
+        self.aggregate_observations()  # Aggregate all observation files
 
-        # Ensure that no sighting duplicates are within the aggregate set
-        self.enforce_unique_ids()
+        self.enforce_unique_ids()  # No duplicate observations
 
-        # Continuation from interrupt/ start from scratch
-        self.continuation()
+        self.continuation()  # Continuation from interrupt/ start from scratch
 
-        # Remove any NaN types from columns undergoing computation
-        self.remove_na_working_columns()
+        self.remove_na_working_columns()  # Remove any NaN types from columns undergoing computation
 
-        # Batching loop
-        while self.batching():
-            # Detect bad quality observations from batch
-            self.bad_data_separation()
+        while self.batching():  # Batching loop
+            self.bad_data_separation()  # Detect bad quality observations from batch
 
-            # Ensure that sighting dates follow the same format.
-            self.format_observation_dates()
+            self.format_observation_dates()  # Format sighting dates
 
-            # Generate local observation times
-            self.generate_local_times()
+            self.generate_local_times()  # Generate local observation times
 
-            # Remove peripheral columns
-            self.remove_peripheral_columns()
+            self.remove_peripheral_columns()  # Remove peripheral columns
 
-            # Write to interim data
-            self.write_interim_data()
+            self.write_interim_data()  # Write to interim data
 
     def aggregate_observations(self):
         """Method aggregates all observations from separate files, placing them within a df for manipulation
@@ -91,7 +81,7 @@ class Pipeline:
         if not self.TEST:
             for dataset in self.datasets:
                 df_temp = pd.read_csv(self.resource_path + dataset)
-                self.df_whole = pd.concat([self.df_whole, df_temp])
+                self.df_whole = pd.concat([self.df_whole, df_temp])  # Merge temp df into container df
 
     def enforce_unique_ids(self):
         """Removal of any duplicate observations utilizing their observation id
@@ -118,18 +108,22 @@ class Pipeline:
         interim_df = pd.DataFrame()
         bad_quality_df = pd.DataFrame()
 
-        if self.TEST and test_interim_df is not None:
+        if self.TEST and test_interim_df is not None:  # Conditions for test cases
             interim_df = pd.concat([interim_df, test_interim_df])
             bad_quality_df = pd.concat([bad_quality_df, test_bad_df])
-        elif not self.TEST and self.interim_exists:
+
+        if not self.TEST and self.interim_exists:  # Non-test conditions when interim data file exists
             interim_df = pd.read_csv(self.write_path + self.interim_file)
+        if not self.TEST and self.bad_data_exists:  # Non-test conditions when bad_quality data file exists
             bad_quality_df = pd.read_csv(self.write_path + self.bad_file)
 
-        if not interim_df.empty:
+        if not interim_df.empty:  # Removal of duplicate rows already written to interim data
             interim_df.set_index('id', inplace=True)
+            self.df_whole = self.df_whole.loc[self.df_whole.index.difference(interim_df.index), ]
+
+        if not bad_quality_df.empty:  # Removal of duplicate rows already written to bad_quality data
             bad_quality_df.set_index('id', inplace=True)
-            self.df_whole = self.df_whole.loc[self.df_whole.index.difference(interim_df.index),]
-            self.df_whole = self.df_whole.loc[self.df_whole.index.difference(bad_quality_df.index),]
+            self.df_whole = self.df_whole.loc[self.df_whole.index.difference(bad_quality_df.index), ]
 
         self.row_sum = len(self.df_whole.index)
 
@@ -299,8 +293,8 @@ class Pipeline:
             bad_df (DataFrame): DataFrame containing the sub-dataframe of only id, image_url, and image_quality columns
         """
         if not self.TEST:
-            bad_data_exists = os.path.isfile(self.write_path + self.bad_file)
-            if bad_data_exists:
+            self.bad_data_exists = os.path.isfile(self.write_path + self.bad_file)
+            if self.bad_data_exists:
                 bad_df.to_csv(self.write_path + self.bad_file, mode='a', index=True, header=False)
             else:
                 bad_df.to_csv(self.write_path + self.bad_file, mode='w', index=True, header=True)
@@ -317,7 +311,7 @@ class Pipeline:
 
 if __name__ == "__main__":
     # Create Pipeline object
-    pipeline = Pipeline(datasets=['observations_1.csv'])
+    pipeline = Pipeline()
 
     # Activate pipeline flow
     pipeline.activate_flow()
