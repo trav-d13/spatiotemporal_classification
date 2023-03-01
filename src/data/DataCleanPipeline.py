@@ -249,11 +249,16 @@ class Pipeline:
             lambda x: finder.timezone_at(lat=x['latitude'], lng=x['longitude']), axis=1)
 
     def bad_data_separation(self):
+        """Method performs the sub-process of bad data separation, formatting, and writing to file"""
         bad_df = self.identify_bad_observations()
         bad_df = self.format_bad_data(bad_df)
         self.write_bad_data(bad_df)
 
     def identify_bad_observations(self):
+        """Method identifies probable bad quality images based on keyword extraction from the descriptions
+
+        Keyword pattern identification is accomplished through the use of regex pattern matching
+        """
         description_indicators = ['dead', 'road kill', 'road', 'scat', 'poo', 'killed', 'spoor', 'road-kill', 'remains',
                                   'body', 'deceased', 'prey', 'fatality', 'tracks', 'trapped', 'bad', 'roadkilled', 'poop',
                                   'crushed', 'kill', 'squashed', 'terrible', 'caught', 'pool', 'blurry', 'destroyed',
