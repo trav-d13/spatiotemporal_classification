@@ -280,10 +280,24 @@ class Pipeline:
                            'taxon_geoprivacy', 'scientific_name', 'common_name', 'taxon_id']]
 
     def format_bad_data(self, bad_df):
+        """Method creates a sub-dataframe of only the image_url and the image quality (Index is observation ID)
+
+        This subset creates the format that the bad quality images will be written to bad_quality.csv
+
+        Args:
+            bad_df (DataFrame): DataFrame containing all bad observations filtered from df
+        """
         bad_df = bad_df[['image_url', 'image_quality']]
         return bad_df
 
     def write_bad_data(self, bad_df):
+        """Method performs similar operation to the write_interim_data() method, in this case specifically writing bad data
+
+        This method should be refactored in conjunction with write_interim_data in order to minimize code repetition
+
+        Args:
+            bad_df (DataFrame): DataFrame containing the sub-dataframe of only id, image_url, and image_quality columns
+        """
         if not self.TEST:
             bad_data_exists = os.path.isfile(self.write_path + self.bad_file)
             if bad_data_exists:
