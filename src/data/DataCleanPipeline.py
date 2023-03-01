@@ -265,7 +265,7 @@ class Pipeline:
                                   'sidewalk',
                                   'grounded']
         regex_pattern = '|'.join([f'{key_word}' for key_word in description_indicators])
-        filter = self.df.description.str.contains(regex_pattern, case=False, regex=True)
+        filter = self.df.description.str.contains(regex_pattern, case=False, regex=True)  # Filter descriptions to identify keywords
         filter.fillna(False, inplace=True)
         bad_df = self.df[filter]
         self.df = self.df[~filter]
