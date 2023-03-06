@@ -1,6 +1,10 @@
+import os
+
+import numpy as np
 import pandas as pd
 import requests
 import json
+import ast
 from geopy import distance
 
 open_meteo_endpoint = 'https://api.open-meteo.com/v1/elevation?l'
@@ -16,13 +20,19 @@ current_batch = pd.DataFrame
 
 
 def elevation_feature_extraction(df: pd.DataFrame):
+    global position_elevation_dict
+    position_elevation_dict = collect_recorded_elevations()  # Read in already known elevations
     while batching(df):
-        # Reduce batch first before getting coords
-        reduce_batch()
-        latitudes = current_batch['latitude'].tolist()
-        longitudes = current_batch['longitude'].tolist()
+        df = reduce_batch(df)  # Reduce batch first before getting coords
+        # Add pre-identified values to dataframe
+        if not current_batch.empty:
+            latitudes = current_batch['latitude'].tolist()
+            longitudes = current_batch['longitude'].tolist()
 
         # API request with remaining batch
+
+    write_coordinate_elevation_dict(position_elevation_dict)
+    return df
 
 
 def batching(df: pd.DataFrame):
@@ -42,15 +52,21 @@ def batching(df: pd.DataFrame):
     return True
 
 
-def reduce_batch():
+def reduce_batch(df: pd.DataFrame):
+    global current_batch
     recorded_filter = current_batch.apply(
         lambda x: False if check_similar_location(x['latitude'], x['longitude']) is None
-        else check_similar_location(x['latitude'], x['longitude']), axis=1)
-    #TODO Remove rows with recorded elevation at coordinates
-    #TODO Update the dataframe
-    #TODO Write dictionary to file
-    #TODO Place API limiter on
-    print(recorded_filter)
+        else check_similar_location(x['latitude'], x['longitude']), axis=1).rename('recorded_elevation')
+
+    recorded_locations = recorded_filter[recorded_filter != False].rename('elevation')  # Filter for already recorded elevations
+    if not recorded_locations.empty:  # Identifies similar elevations
+        df = df.join(recorded_locations)  # Merge found elevations into df
+    current_batch = current_batch[(recorded_filter == False).values]  # Update the current batch
+    return df
+
+
+    # TODO Write dictionary to file
+    # TODO Place API limiter on
 
 
 def check_similar_location(latitude, longitude):
@@ -58,6 +74,7 @@ def check_similar_location(latitude, longitude):
     rounded_long = round(longitude, coordinate_accuracy)
     key = (rounded_lat, rounded_long)
     print(key)
+    print(type(key))
     try:
         recorded_elevation = position_elevation_dict[key]
         return recorded_elevation
@@ -70,3 +87,21 @@ def get_request(latitude, longitude):
     req = requests.get(url=open_meteo_endpoint, params=params)
     data = req.json()
     print(data)
+
+
+def write_coordinate_elevation_dict(coordinate_elevations):
+    print(coordinate_elevations)
+    with open('coordinate_elevation_store.txt', 'w') as f:
+        f.write(json.dumps(str(coordinate_elevations)))
+
+
+def collect_recorded_elevations() -> dict:
+    if os.path.isfile('./coordinate_elevation_store.txt'):
+        with open('coordinate_elevation_store.txt') as f:
+            data = f.read()
+            diction = ast.literal_eval(data)
+            print(type(diction))
+            print(diction.keys()[0])
+            print(diction)
+            return dict
+    return {(-30.4901, 151.6393): 100}

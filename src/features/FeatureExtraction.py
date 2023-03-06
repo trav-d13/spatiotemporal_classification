@@ -12,7 +12,8 @@ def feature_extraction():
     df = import_interim_data()  # Import interim data
 
     # Extract Elevation
-    elevation_feature_extraction(df)
+    df = elevation_feature_extraction(df)
+    return df
 
 
 def import_interim_data():
@@ -22,5 +23,6 @@ def import_interim_data():
 
 
 if __name__ == '__main__':
-    feature_extraction()
+    df_final = feature_extraction()
+    print(df_final.columns)
 
