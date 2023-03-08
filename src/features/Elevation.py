@@ -29,7 +29,12 @@ def elevation_feature_extraction(df: pd.DataFrame):
             latitudes = current_batch['latitude'].tolist()
             longitudes = current_batch['longitude'].tolist()
 
-        # API request with remaining batch
+            elevations = get_request(latitudes, longitudes)
+            current_batch['elevation'] = elevations
+
+            #TODO Update disctionary
+            #TODO Update dataframe
+
 
     write_coordinate_elevation_dict(position_elevation_dict)
     return df
@@ -81,7 +86,7 @@ def get_request(latitude, longitude):
     params = {'latitude': latitude, 'longitude': longitude}
     req = requests.get(url=open_meteo_endpoint, params=params)
     data = req.json()
-    print(data)
+    return data['elevation']
 
 
 def write_coordinate_elevation_dict(coordinate_elevations):
