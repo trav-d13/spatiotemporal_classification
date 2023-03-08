@@ -2,7 +2,7 @@
 
 import pandas as pd
 from Config import root_dir
-from Elevation import elevation_feature_extraction
+from Elevation import elevation_feature_extraction, get_request, update_recorded_elevations
 
 interim_data_file = 'interim_sample.csv'
 interim_path = root_dir() + "/data/interim/"
@@ -24,5 +24,6 @@ def import_interim_data():
 
 if __name__ == '__main__':
     df_final = feature_extraction()
-    print(df_final.columns)
+    print(df_final.head(30))
+
 
