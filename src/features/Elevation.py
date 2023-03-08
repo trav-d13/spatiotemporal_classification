@@ -8,7 +8,7 @@ import ast
 from geopy import distance
 
 open_meteo_endpoint = 'https://api.open-meteo.com/v1/elevation?l'
-position_elevation_dict = {(-30.4901, 151.6393): 100}
+position_elevation_dict = dict()
 coordinate_accuracy = 4
 batch_size = 10
 batch_start_index = 0
@@ -61,20 +61,15 @@ def reduce_batch(df: pd.DataFrame):
     recorded_locations = recorded_filter[recorded_filter != False].rename('elevation')  # Filter for already recorded elevations
     if not recorded_locations.empty:  # Identifies similar elevations
         df = df.join(recorded_locations)  # Merge found elevations into df
+        print(df.head(15))
     current_batch = current_batch[(recorded_filter == False).values]  # Update the current batch
     return df
-
-
-    # TODO Write dictionary to file
-    # TODO Place API limiter on
 
 
 def check_similar_location(latitude, longitude):
     rounded_lat = round(latitude, coordinate_accuracy)
     rounded_long = round(longitude, coordinate_accuracy)
-    key = (rounded_lat, rounded_long)
-    print(key)
-    print(type(key))
+    key = str(rounded_lat) + ", " + str(rounded_long)
     try:
         recorded_elevation = position_elevation_dict[key]
         return recorded_elevation
@@ -90,18 +85,13 @@ def get_request(latitude, longitude):
 
 
 def write_coordinate_elevation_dict(coordinate_elevations):
-    print(coordinate_elevations)
     with open('coordinate_elevation_store.txt', 'w') as f:
-        f.write(json.dumps(str(coordinate_elevations)))
+        f.write(json.dumps(coordinate_elevations))
 
 
 def collect_recorded_elevations() -> dict:
     if os.path.isfile('./coordinate_elevation_store.txt'):
         with open('coordinate_elevation_store.txt') as f:
             data = f.read()
-            diction = ast.literal_eval(data)
-            print(type(diction))
-            print(diction.keys()[0])
-            print(diction)
-            return dict
-    return {(-30.4901, 151.6393): 100}
+            return json.loads(data)
+    return {}
