@@ -31,6 +31,7 @@ current_batch = pd.DataFrame
 ## Accuracy Loss ##
 # Accuracy loss will range from 11.1m-70m. This should be included in method documentation
 
+# TODO Add progress bar to determine quantity of dataframe complete
 
 def elevation_feature_extraction(df: pd.DataFrame):
     global position_elevation_dict, current_batch_no
