@@ -9,7 +9,7 @@ import json
 open_meteo_endpoint = 'https://api.open-meteo.com/v1/elevation?l'
 position_elevation_dict = dict()
 coordinate_accuracy = 4
-batch_size = 50
+batch_size = 100
 batch_limit = 10
 current_batch_no = 0
 batch_start_index = 0
