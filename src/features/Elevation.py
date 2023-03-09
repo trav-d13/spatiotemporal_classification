@@ -4,14 +4,12 @@ import numpy as np
 import pandas as pd
 import requests
 import json
-import ast
-from geopy import distance
 
 open_meteo_endpoint = 'https://api.open-meteo.com/v1/elevation?l'
 position_elevation_dict = dict()
 coordinate_accuracy = 4
 batch_size = 10
-batch_limit = 1
+batch_limit = 3
 current_batch_no = 0
 batch_start_index = 0
 current_batch = pd.DataFrame
@@ -23,6 +21,7 @@ current_batch = pd.DataFrame
 
 def elevation_feature_extraction(df: pd.DataFrame):
     global position_elevation_dict
+    df['elevation'] = None
     position_elevation_dict = collect_recorded_elevations()  # Read in already known elevations
     while batching(df):
         df = reduce_batch(df)  # Reduce batch first before getting coords
@@ -35,7 +34,7 @@ def elevation_feature_extraction(df: pd.DataFrame):
             current_batch['elevation'] = elevations  # Update current batch with elevation column
 
             position_elevation_dict = update_recorded_elevations(latitudes, longitudes, elevations)  # Update recorded positions
-            df.merge(current_batch)  # Merge batch back into dataframe
+            df.update(current_batch)  # Merge batch back into dataframe
 
     write_coordinate_elevation_dict(position_elevation_dict)
     return df
@@ -62,14 +61,14 @@ def batching(df: pd.DataFrame):
 
 def reduce_batch(df: pd.DataFrame):
     global current_batch
-    recorded_filter = current_batch.apply(
-        lambda x: False if check_similar_location(x['latitude'], x['longitude']) is None
-        else check_similar_location(x['latitude'], x['longitude']), axis=1).rename('recorded_elevation')
+    recorded_locations = current_batch.apply(
+        lambda x: None if check_similar_location(x['latitude'], x['longitude']) is None
+        else check_similar_location(x['latitude'], x['longitude']), axis=1).rename('elevation')
 
-    recorded_locations = recorded_filter[recorded_filter != False].rename('elevation')  # Filter for already recorded elevations
+    recorded_filter = recorded_locations.isna()  # Create a mask, where non-recorded values are True
     if not recorded_locations.empty:  # Identifies similar elevations
-        df = df.join(recorded_locations)  # Merge found elevations into df
-    current_batch = current_batch[(recorded_filter == False).values]  # Update the current batch
+        df.update(recorded_locations.to_frame())  # Merge found elevations into df
+    current_batch = current_batch[recorded_filter]  # Update the current batch
     return df
 
 
@@ -97,7 +96,6 @@ def update_recorded_elevations(latitudes, longitudes, elevations):
     keys = [i + ", " + j for i, j in zip(lats_round, longs_round)]
     new_recordings = dict(zip(keys, elevations))
     return {**position_elevation_dict, **new_recordings}
-
 
 
 def get_request(latitude, longitude):

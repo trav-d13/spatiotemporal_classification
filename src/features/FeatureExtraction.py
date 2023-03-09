@@ -25,5 +25,6 @@ def import_interim_data():
 if __name__ == '__main__':
     df_final = feature_extraction()
     print(df_final.head(30))
+    print(df_final.columns)
 
 
