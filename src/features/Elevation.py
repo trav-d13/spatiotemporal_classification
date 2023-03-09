@@ -1,16 +1,28 @@
 import os
-from time import sleep
+
+import Config
+from OpenMeteoApiTimer import enforce_request_interval, calculate_request_interval_batching, increase_interval
 
 import numpy as np
 import pandas as pd
 import requests
 import json
 
+## SYSTEM LEVEL ##
+file_name = 'elevation_final.csv'
+root_path = Config.root_dir()
+data_path = '/data/processed/'
+interim_data_file = 'interim_observations.csv'
+interim_path = Config.root_dir() + "/data/interim/"
+
+
+## ELEVATION LEVEL ##
 open_meteo_endpoint = 'https://api.open-meteo.com/v1/elevation?l'
 position_elevation_dict = dict()
 coordinate_accuracy = 4
 batch_size = 100
-batch_limit = 10
+batch_limit = 200
+request_duration = 10
 current_batch_no = 0
 batch_start_index = 0
 current_batch = pd.DataFrame
@@ -22,8 +34,10 @@ current_batch = pd.DataFrame
 
 def elevation_feature_extraction(df: pd.DataFrame):
     global position_elevation_dict, current_batch_no
+    calculate_request_interval_batching(batch_size, batch_limit, request_duration)
     df['elevation'] = None  # Create empty elevation column
     position_elevation_dict = collect_recorded_elevations()  # Read in already known elevations
+
     while batching(df):
         df = reduce_batch(df)  # Reduce batch first before getting coords
 
@@ -32,14 +46,19 @@ def elevation_feature_extraction(df: pd.DataFrame):
             longitudes = current_batch['longitude'].tolist()  # Retrieve batch longitudes
 
             elevations = get_request(latitudes, longitudes)  # Retrieve coordinate elevations
+            if elevations is None:
+                continue
+
             current_batch['elevation'] = elevations  # Update current batch with elevation column
 
             position_elevation_dict = update_recorded_elevations(latitudes, longitudes, elevations)  # Update recorded positions
             df.update(current_batch)  # Merge batch back into dataframe
 
             current_batch_no = current_batch_no + 1  # Update batch number
+            write_coordinate_elevation_dict(
+                position_elevation_dict)  # Write the updated coordinate elevation dict to file
 
-    write_coordinate_elevation_dict(position_elevation_dict)  # Write the updated coordinate elevation dict to file
+    df = final_processing(df)
     return df
 
 
@@ -103,11 +122,22 @@ def update_recorded_elevations(latitudes, longitudes, elevations):
 
 
 def get_request(latitude, longitude):
+    enforce_request_interval()
     params = {'latitude': latitude, 'longitude': longitude}
-    req = requests.get(url=open_meteo_endpoint, params=params)
-    sleep(1)
-    data = req.json()
-    return data['elevation']
+    try:
+        req = requests.get(url=open_meteo_endpoint, params=params)
+        data = req.json()
+        return data['elevation']
+    except Exception:
+        print("Error occurred: 403")
+        increase_interval()
+
+
+def final_processing(df: pd.DataFrame):
+    processed_df = df[df.elevation != 0]
+    removed_observations = df.shape[0] - processed_df.shape[0]
+    print("Observations with no elevation: ", removed_observations)
+    return processed_df
 
 
 def write_coordinate_elevation_dict(coordinate_elevations):
@@ -121,3 +151,20 @@ def collect_recorded_elevations() -> dict:
             data = f.read()
             return json.loads(data)
     return {}
+
+
+def write_recorded_elevations(df: pd.DataFrame):
+    final_elevations = df['elevation']
+    final_elevations.to_csv(root_path + data_path + file_name, mode='w', index=True, header=True)
+
+
+def import_interim_data():
+    df = pd.read_csv(interim_path + interim_data_file)
+    df.set_index('id', inplace=True, drop=True)
+    return df
+
+
+if __name__ == '__main__':
+    df = import_interim_data()
+    df = elevation_feature_extraction(df)
+    write_recorded_elevations(df)
