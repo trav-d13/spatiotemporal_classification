@@ -1,4 +1,5 @@
 import os
+import sys
 
 import Config
 from OpenMeteoApiTimer import enforce_request_interval, calculate_request_interval_batching, increase_interval
@@ -10,30 +11,46 @@ import json
 
 ## SYSTEM LEVEL ##
 file_name = 'elevation_final.csv'
+"""string: file name of the output of the elevation extraction process"""
 root_path = Config.root_dir()
+"""string: The root file path of the project"""
 data_path = '/data/processed/'
+"""The data path to the directory of processed data."""
 interim_data_file = 'interim_observations.csv'
+"""string: File name where interim data is stored"""
 interim_path = Config.root_dir() + "/data/interim/"
-
+"""string: interim data directory path"""
 
 ## ELEVATION LEVEL ##
 open_meteo_endpoint = 'https://api.open-meteo.com/v1/elevation?l'
+"""string: Open-Meteo elevation API endpoint"""
 position_elevation_dict = dict()
+"""dict: Collection of coordinate to recorded observations acting as a cache"""
 coordinate_accuracy = 4
+"""int: Decimal places to round the coordinate values to"""
 batch_size = 100
-batch_limit = 500
-request_duration = 20
+"""int: API parameter batch size"""
+batch_limit = 100
+"""int: The number of batches to be requesting during the course of execution"""
+request_duration = 5
+"""int: The number of minutes the batching of requests should extend over. Informs the GET request interval."""
 current_batch_no = 0
+"""int: The current batch number being requested"""
 batch_start_index = 0
+"""int: index tracker of the batch within the larger dataframe"""
 current_batch = pd.DataFrame
+"""DataFrame: The current batch """
 
-
-## Accuracy Loss ##
-# Accuracy loss will range from 11.1m-70m. This should be included in method documentation
-
-# TODO Add progress bar to determine quantity of dataframe complete
 
 def elevation_feature_extraction(df: pd.DataFrame):
+    """Method performs the entirety of elevation extraction for all interim observations.
+
+    This method includes the use of GET request limits (requests should not exceed 10000 a day, or more
+    than 1 request per second. Open Meteo offers this API for non-commercial use, but it must be respected.
+
+    Args:
+        df (DataFrame): The dataframe containing the entirety of interim observations
+    """
     global position_elevation_dict, current_batch_no
     calculate_request_interval_batching(batch_size, batch_limit, request_duration)
     df['elevation'] = None  # Create empty elevation column
@@ -41,6 +58,7 @@ def elevation_feature_extraction(df: pd.DataFrame):
 
     while batching(df):
         df = reduce_batch(df)  # Reduce batch first before getting coords
+        observations_progress(df)  # Update current observations on the progress bar
 
         if not current_batch.empty:
             latitudes = current_batch['latitude'].tolist()  # Retrieve batch latitudes
@@ -52,12 +70,14 @@ def elevation_feature_extraction(df: pd.DataFrame):
 
             current_batch['elevation'] = elevations  # Update current batch with elevation column
 
-            position_elevation_dict = update_recorded_elevations(latitudes, longitudes, elevations)  # Update recorded positions
+            position_elevation_dict = update_recorded_elevations(latitudes, longitudes,
+                                                                 elevations)  # Update recorded positions
             df.update(current_batch)  # Merge batch back into dataframe
 
             current_batch_no = current_batch_no + 1  # Update batch number
             write_coordinate_elevation_dict(
                 position_elevation_dict)  # Write the updated coordinate elevation dict to file
+        sys.stdout.flush()
 
     df = final_processing(df)
     return df
@@ -105,7 +125,8 @@ def reduce_batch(df: pd.DataFrame):
 
     recorded_locations = current_batch.apply(
         lambda x: None if check_similar_location(x['latitude'], x['longitude']) is None
-        else check_similar_location(x['latitude'], x['longitude']), axis=1).rename('elevation')  # Determine already recorded elevations for similar locations
+        else check_similar_location(x['latitude'], x['longitude']), axis=1).rename(
+        'elevation')  # Determine already recorded elevations for similar locations
 
     recorded_filter = recorded_locations.isna()  # Create a mask, where non-recorded values are True
     if not recorded_locations.empty:  # Identifies similar elevations
@@ -150,7 +171,7 @@ def update_recorded_elevations(latitudes, longitudes, elevations):
     """
     global position_elevation_dict
     np_latitudes = np.array(latitudes)  # Convert lats to np arrays for vector ops
-    np_longitudes = np.array(longitudes)   # Convert longs to np arrays for vector ops
+    np_longitudes = np.array(longitudes)  # Convert longs to np arrays for vector ops
 
     np_latitudes_round = np.round(np_latitudes, coordinate_accuracy)  # Round the latitudes to correct accuracy
     np_longitudes_round = np.round(np_longitudes, coordinate_accuracy)  # Round the longitudes to the correct accuracy
@@ -246,6 +267,28 @@ def import_interim_data():
     df = pd.read_csv(interim_path + interim_data_file)
     df.set_index('id', inplace=True, drop=True)
     return df
+
+
+def observations_progress(df: pd.DataFrame):
+    """Method to illustrate the observations that now contain elevations out of the entire dataset
+
+    Args:
+        df (DataFrame): The dataset containing all observations. This dataset is updated as elevations are generated.
+    """
+    cursor_up = '\x1b[1A'
+    erase_line = '\x1b[2K'
+    progress_bar_length = 100  # Specify progress bar length
+    answered_observations = df[df.elevation >= 0]  # Determine the number of elevations recorded
+    percentage_complete = answered_observations.shape[0] / df.shape[0]  # Calculate percentage complete
+    filled = int(progress_bar_length * percentage_complete)  # Determine fill of percentage bar
+
+    bar = '=' * filled + '-' * (progress_bar_length - filled)  # Modify bar with fill
+    percentage_display = round(100 * percentage_complete, 3)  # Calculate percentage
+    sys.stdout.write(cursor_up + erase_line + '\r[%s] %s%s ... current observations: %s / %s' % (bar,
+                                                                                                 percentage_display,
+                                                                                                 '%',
+                                                                                                 answered_observations.shape[0],
+                                                                                                 df.shape[0]))
 
 
 if __name__ == '__main__':

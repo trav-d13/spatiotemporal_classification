@@ -1,5 +1,4 @@
 import sys
-from datetime import datetime
 from time import sleep
 
 request_limit = 10000
@@ -20,17 +19,18 @@ interval = 0
 
 
 def enforce_request_interval():
+    """Method which enforces the API request interval by causing the program to sleep"""
     global request_no
-    progress_bar()
+    progress_bar()  # Update the progress bar
     sleep(interval)
-    request_no = request_no + 1
-
+    request_no = request_no + 1 # Increment request counter
 
 
 def calculate_request_interval():
     """ Method calculates the interval time between requests.
 
     Each request will maximize the request parameter limit.
+    Note, the request limit and the interval must be within accepted values. Assert statements hold process if breached.
 
     """
     global no_requests, interval
@@ -42,6 +42,16 @@ def calculate_request_interval():
 
 
 def calculate_request_interval_batching(batch_size, batch_limit, duration):
+    """Method calculates the interval time between requests.
+
+    Args:
+        batch_size (int): The batch size of each request. Maximum of 100.
+        batch_limit (int): The number of batches to be executed. Maximum 10000
+        duration (int): The duration over which the request must be executed
+
+    Returns:
+        The interval in seconds between
+    """
     global collection_target, request_parameter_limit, interval, collection_duration
     collection_duration = duration
     request_parameter_limit = batch_size
@@ -51,12 +61,18 @@ def calculate_request_interval_batching(batch_size, batch_limit, duration):
 
 
 def increase_interval():
+    """Method increases the interval after encountering 403 errors."""
     global interval
     percentage_increase = 0.1
     interval = interval + (percentage_increase * interval)
 
 
 def progress_bar():
+    """Method displays the progress bar of the API requests.
+
+    To utilize this method, use sys.stdout.flush() to render the result within a loop.
+    Element unfortunately disconnected in order to display two status bars.
+    """
     progress_bar_length = 100
     percentage_complete = (request_no / no_requests)
     filled = int(progress_bar_length * percentage_complete)
@@ -64,8 +80,13 @@ def progress_bar():
 
     bar = '=' * filled + '-' * (progress_bar_length - filled)
     percentage_display = round(100 * percentage_complete, 1)
-    sys.stdout.write('\r[%s] %s%s ... running: %s ... interval: %s' % (bar, percentage_display, '%', round(running_time, 2), interval))
-    sys.stdout.flush()
+    sys.stdout.write('\n')
+    sys.stdout.write('\r[%s] %s%s ... running: %s ... interval: %s' % (bar,
+                                                                       percentage_display,
+                                                                       '%',
+                                                                       round(running_time, 2),
+                                                                       round(interval, 2)))
+
 
 
 
