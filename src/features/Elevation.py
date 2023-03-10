@@ -21,8 +21,8 @@ open_meteo_endpoint = 'https://api.open-meteo.com/v1/elevation?l'
 position_elevation_dict = dict()
 coordinate_accuracy = 4
 batch_size = 100
-batch_limit = 1000
-request_duration = 30
+batch_limit = 500
+request_duration = 20
 current_batch_no = 0
 batch_start_index = 0
 current_batch = pd.DataFrame
@@ -64,6 +64,16 @@ def elevation_feature_extraction(df: pd.DataFrame):
 
 
 def batching(df: pd.DataFrame):
+    """This method separates df into a series of batches in order to perform batch API queries.
+
+    Args:
+        df (DataFrame): The whole dataframe containing interim observations. This df will be batched.
+
+    Returns:
+        A boolean indicating that the batching process is still ongoing. The method updates the global current_batch
+        variable with a new batch in the process. If the batch limit or the end of the dataframe is reached, the method
+        returns False.
+    """
     global batch_start_index, current_batch, current_batch_no
 
     df_len = df.shape[0]
@@ -82,11 +92,20 @@ def batching(df: pd.DataFrame):
 
 
 def reduce_batch(df: pd.DataFrame):
+    """Method performs caching on the current batch. This caching reduces the number of queries send to the API
+
+    Args:
+        df (DataFrame): The current batch of observations to be queried for elevations.
+
+    Returns:
+        A modified df, where all cached elevations are appended the whole dataframe, and those observations are
+        removed from the current batch.
+    """
     global current_batch
 
     recorded_locations = current_batch.apply(
         lambda x: None if check_similar_location(x['latitude'], x['longitude']) is None
-        else check_similar_location(x['latitude'], x['longitude']), axis=1).rename('elevation')     # Determine already recorded elevations for similar locations
+        else check_similar_location(x['latitude'], x['longitude']), axis=1).rename('elevation')  # Determine already recorded elevations for similar locations
 
     recorded_filter = recorded_locations.isna()  # Create a mask, where non-recorded values are True
     if not recorded_locations.empty:  # Identifies similar elevations
@@ -99,6 +118,14 @@ def check_similar_location(latitude, longitude):
     """Method determines if the parameterized coordinate has a recorded elevation in the approximate area.
 
     This forms part of the caching process to determine approximately similar elevations.
+
+    Args:
+        latitude (float): A floating value representing latitude in the coordinate to be checked.
+        longitude (float): A float value representing the longitude in the coordinate to be checked.
+
+    Returns:
+        Method returns a float representing the elevation (in meters) if the coordinate key is found.
+        If no key is found, the exception is handled and None is returned.
     """
     rounded_lat = round(latitude, coordinate_accuracy)  # Round the latitude
     rounded_long = round(longitude, coordinate_accuracy)  # Round the longitude
@@ -161,7 +188,7 @@ def get_request(latitude, longitude):
         data = req.json()  # Retrieve data in JSON format
         return data['elevation']  # Return the retrieved data
     except Exception:
-        print("Error occurred: 403")  # Assumed 403 exception
+        print(" | Error occurred: 403")  # Assumed 403 exception
         increase_interval()  # Increase the request time interval
 
 

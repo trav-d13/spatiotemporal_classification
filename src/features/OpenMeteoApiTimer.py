@@ -64,7 +64,7 @@ def progress_bar():
 
     bar = '=' * filled + '-' * (progress_bar_length - filled)
     percentage_display = round(100 * percentage_complete, 1)
-    sys.stdout.write('\r[%s] %s%s ... running: %s ... interval: %s' % (bar, percentage_display, '%', running_time, interval))
+    sys.stdout.write('\r[%s] %s%s ... running: %s ... interval: %s' % (bar, percentage_display, '%', round(running_time, 2), interval))
     sys.stdout.flush()
 
 
