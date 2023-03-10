@@ -21,8 +21,8 @@ open_meteo_endpoint = 'https://api.open-meteo.com/v1/elevation?l'
 position_elevation_dict = dict()
 coordinate_accuracy = 4
 batch_size = 100
-batch_limit = 500
-request_duration = 10
+batch_limit = 1000
+request_duration = 30
 current_batch_no = 0
 batch_start_index = 0
 current_batch = pd.DataFrame
@@ -96,6 +96,10 @@ def reduce_batch(df: pd.DataFrame):
 
 
 def check_similar_location(latitude, longitude):
+    """Method determines if the parameterized coordinate has a recorded elevation in the approximate area.
+
+    This forms part of the caching process to determine approximately similar elevations.
+    """
     rounded_lat = round(latitude, coordinate_accuracy)  # Round the latitude
     rounded_long = round(longitude, coordinate_accuracy)  # Round the longitude
     key = str(rounded_lat) + ", " + str(rounded_long)  # Create dictionary key string
@@ -107,6 +111,16 @@ def check_similar_location(latitude, longitude):
 
 
 def update_recorded_elevations(latitudes, longitudes, elevations):
+    """Method updates the coordinate-elevation dictionary based on the successful batch request.
+
+    The coordinates are rounded to 4 decimal places in order to cache those in similar locations.
+    Rounding to 4 decimal places produces an error of approximately 11.1m - 70m in coordinate accuracy.
+
+    Args:
+        latitudes (List): A list of numerical float latitudes
+        longitudes (List): Alist of corresponding numerical float longitudes to latitudes.
+        elevations (List): A list of corresponding elevations to the provided latitude, longitude pairs.
+    """
     global position_elevation_dict
     np_latitudes = np.array(latitudes)  # Convert lats to np arrays for vector ops
     np_longitudes = np.array(longitudes)   # Convert longs to np arrays for vector ops
@@ -123,30 +137,63 @@ def update_recorded_elevations(latitudes, longitudes, elevations):
 
 
 def get_request(latitude, longitude):
-    enforce_request_interval()
-    params = {'latitude': latitude, 'longitude': longitude}
+    """Method performs the get request and data collection from the response from Open-Meteo Elevation API
+
+    Method contains a request interval that is enforced by the OpenMeteoTimerAPI file. Please direct
+    queries there for further information.
+
+    Error responses (403-too many request error) is handled by increasing the timer interval, and re-attempting
+    the batch request after the new interval.
+
+    Each GET request is defined by a 5-second timeout parameter.
+
+    Args:
+        latitude (List): A float list containing a set of latitudes to be queries.
+        longitude (List): A float corresponding list of longitudes to the provided latitudes.
+
+    Returns:
+        Elevation values for the queries coordinates
+    """
+    enforce_request_interval()  # Enforce the calculated interim request interval to respect the API
+    params = {'latitude': latitude, 'longitude': longitude}  # Format the request parameters
     try:
-        req = requests.get(url=open_meteo_endpoint, params=params, timeout=5)
-        data = req.json()
-        return data['elevation']
+        req = requests.get(url=open_meteo_endpoint, params=params, timeout=5)  # Perform GET request
+        data = req.json()  # Retrieve data in JSON format
+        return data['elevation']  # Return the retrieved data
     except Exception:
-        print("Error occurred: 403")
-        increase_interval()
+        print("Error occurred: 403")  # Assumed 403 exception
+        increase_interval()  # Increase the request time interval
 
 
 def final_processing(df: pd.DataFrame):
+    """Method performs final processing of collected observations before being written to file.
+
+    This file removes all elevations with a value of 0. This is indicative that the API request to Open-Meteo could not
+    determine an elevation for the provided coordinates. These values should not be written to the final elevation store.
+
+    Returns:
+        The final processed dataframe containing the remaining recorded elevations to be written to processed storage.
+        Additionally, a terminal print out indicating the amount of zero values removed.
+    """
     processed_df = df[df.elevation != 0]
     removed_observations = df.shape[0] - processed_df.shape[0]
-    print("Observations with no elevation: ", removed_observations)
+    print(" Observations with no elevation: ", removed_observations)
     return processed_df
 
 
 def write_coordinate_elevation_dict(coordinate_elevations):
+    """Method to write the current coordinate-elevation dictionary to the coordinate_elevation_store.txt file"""
     with open('coordinate_elevation_store.txt', 'w') as f:
         f.write(json.dumps(coordinate_elevations))
 
 
 def collect_recorded_elevations() -> dict:
+    """Method accesses the stored coordinate-api dictionary to serve as a cache to minimize API requests.
+
+    Returns:
+        If the coordinate_elevation_store.txt file exists, it returns the stored dictionary.
+        Else an empty dictionary is returned.
+    """
     if os.path.isfile('./coordinate_elevation_store.txt'):
         with open('coordinate_elevation_store.txt') as f:
             data = f.read()
@@ -155,11 +202,20 @@ def collect_recorded_elevations() -> dict:
 
 
 def write_recorded_elevations(df: pd.DataFrame):
+    """Method writes all recorded elevations to elevation_final.csv inside the processed data folder.
+
+    Note, only the elevations values with the corresponding index (id) are written to file.
+    """
     final_elevations = df['elevation']
     final_elevations.to_csv(root_path + data_path + file_name, mode='w', index=True, header=True)
 
 
 def import_interim_data():
+    """Method to import interim_observations.csv as a dataframe
+
+    Returns:
+        A DataFrame containing all interim observations.
+    """
     df = pd.read_csv(interim_path + interim_data_file)
     df.set_index('id', inplace=True, drop=True)
     return df
