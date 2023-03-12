@@ -30,9 +30,9 @@ coordinate_accuracy = 4
 """int: Decimal places to round the coordinate values to"""
 batch_size = 100
 """int: API parameter batch size"""
-batch_limit = 100
+batch_limit = 2000
 """int: The number of batches to be requesting during the course of execution"""
-request_duration = 5
+request_duration = 90
 """int: The number of minutes the batching of requests should extend over. Informs the GET request interval."""
 current_batch_no = 0
 """int: The current batch number being requested"""
